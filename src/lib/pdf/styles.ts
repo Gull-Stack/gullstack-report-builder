@@ -6,10 +6,10 @@ import { StyleSheet } from '@react-pdf/renderer';
 
 // Brand palette
 export const colors = {
-  navy: '#0A1628',
-  navyLight: '#1A2A44',
-  gold: '#C9A84C',
-  goldLight: '#E8D9A0',
+  navy: '#16253C',
+  navyLight: '#1E3456',
+  gold: '#C7A356',
+  goldLight: '#E2D4A8',
   white: '#FFFFFF',
   offWhite: '#F7F8FA',
   gray: '#6B7280',

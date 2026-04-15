@@ -98,7 +98,7 @@ const ReportPageInternal: React.FC<ReportPageInternalProps> = ({ sectionTitle, c
     {showWatermark && <Watermark />}
     {/* Header */}
     <View style={styles.header} fixed>
-      <Text style={styles.headerBrand}>CapitalWealth.com</Text>
+      <Text style={styles.headerBrand}>Capital Wealth Advisors</Text>
       <Text style={styles.headerSection}>{sectionTitle}</Text>
     </View>
     {/* Body */}
@@ -106,7 +106,7 @@ const ReportPageInternal: React.FC<ReportPageInternalProps> = ({ sectionTitle, c
     {/* Footer */}
     <View style={styles.footer} fixed>
       <Text style={styles.footerText}>
-        Confidential — Prepared by CapitalWealth.com
+        Confidential — Prepared by Capital Wealth Advisors
       </Text>
       <Text
         style={styles.pageNumber}
@@ -325,7 +325,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
   return (
     <Document
       title={`Federal Retirement Report — ${input.personal.fullName}`}
-      author={input.advisorName ?? 'CapitalWealth.com'}
+      author={input.advisorName ?? 'Capital Wealth Advisors'}
     >
       {/* ============================================================
           A. COVER PAGE
@@ -333,12 +333,12 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
       <Page size="LETTER" style={styles.coverPage}>
         {isFree && <Watermark />}
         <Text style={styles.coverLogo}>
-          {isProfessional && input.advisorCompany ? input.advisorCompany : 'CapitalWealth.com'}
+          Capital Wealth Advisors
         </Text>
-        <Text style={styles.coverSubtitle}>FEDERAL BENEFITS GROUP</Text>
+        <Text style={styles.coverSubtitle}>STRATEGIC INCOME &amp; TAX PLANNING FOR YOUR RETIREMENT</Text>
         <View style={styles.coverDivider} />
         <Text style={styles.coverTitle}>
-          Federal Retirement Benefits Analysis
+          Retirement Money Map
         </Text>
         <Text style={styles.coverClientName}>
           Prepared for {input.personal.fullName}
@@ -384,7 +384,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
         <View style={styles.goldDivider} />
         <Text style={styles.text}>
           This Federal Retirement Benefits Analysis has been prepared for{' '}
-          {input.personal.fullName} by CapitalWealth.com
+          {input.personal.fullName} by Capital Wealth Advisors
           {input.advisorName ? ` and ${input.advisorName}` : ''}.
         </Text>
         <Text style={styles.text}>
@@ -430,7 +430,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           Office of Personnel Management (OPM).
         </Text>
         <Text style={styles.text}>
-          CapitalWealth.com is not affiliated with the U.S. Government,
+          Capital Wealth Advisors is not affiliated with the U.S. Government,
           OPM, or any federal agency. All trademarks are property of their
           respective owners.
         </Text>
