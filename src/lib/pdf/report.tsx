@@ -195,11 +195,25 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
   const salaryAtRet = salaryNow * Math.pow(1 + salaryRate, yearsToRet);
   const hourlyAtRet = salaryAtRet / 2087;
 
-  // Service breakdown
+  // Service breakdown — at retirement (used in the Retirement section)
   const civilianYears = input.employment.creditableServiceYears;
   const civilianMonths = input.employment.creditableServiceMonths;
   const sickLeaveYears = Math.floor(result.annuity.sickLeaveCredit);
   const sickLeaveMonthsExt = Math.round((result.annuity.sickLeaveCredit - sickLeaveYears) * 12);
+
+  // Current service — as of today (used in the Employment section)
+  const scdDate = parseISO(input.employment.serviceComputationDate);
+  const monthsToToday = Math.max(
+    0,
+    (new Date().getFullYear() - scdDate.getFullYear()) * 12 +
+      (new Date().getMonth() - scdDate.getMonth()),
+  );
+  const currentCivilianYears = Math.floor(monthsToToday / 12);
+  const currentCivilianMonths = monthsToToday % 12;
+  // Sick leave today: assume the sickLeaveHours field reflects today's accrual.
+  const currentSickLeaveMonths = Math.floor(input.employment.sickLeaveHours / (2087 / 12));
+  const currentSickLeaveYears = Math.floor(currentSickLeaveMonths / 12);
+  const currentSickLeaveMonthsRem = currentSickLeaveMonths % 12;
 
   // Survivor numbers (cost / benefit) — pulled from result
   const annualNoSurv = result.annuity.annualAnnuity;
@@ -471,8 +485,8 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <SRow label="Annual Salary:" value={fmt.currency(salaryNow)} />
           <SRow label="Hourly Salary:" value={fmt.currency(hourlyNow)} />
           <SRow label="Annual Salary Increase:" value={`${fmt.pct(salaryRate)} (Estimated)`} />
-          <SRow label="Creditable Service:" value={`${civilianYears} Years ${civilianMonths} Month${civilianMonths === 1 ? '' : 's'}`} />
-          <SRow label="Sick Leave:" value={`${sickLeaveYears} Year${sickLeaveYears === 1 ? '' : 's'} ${sickLeaveMonthsExt} Month${sickLeaveMonthsExt === 1 ? '' : 's'}`} />
+          <SRow label="Creditable Service:" value={`${currentCivilianYears} Year${currentCivilianYears === 1 ? '' : 's'} ${currentCivilianMonths} Month${currentCivilianMonths === 1 ? '' : 's'}`} />
+          <SRow label="Sick Leave:" value={`${currentSickLeaveYears > 0 ? `${currentSickLeaveYears} Year${currentSickLeaveYears === 1 ? '' : 's'} ` : '0 Years '}${currentSickLeaveMonthsRem} Month${currentSickLeaveMonthsRem === 1 ? '' : 's'}`} />
 
           {/* Retirement */}
           <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Retirement</Text>
