@@ -1,26 +1,15 @@
 // ============================================================
-// Federal Retirement Report — PDF Document (react-pdf/renderer)
+// Federal Employee Benefits Analysis — PDF Document
+// Mirrors the legacy 13-page Capital Wealth Federal Analysis report.
 // ============================================================
 
 import React from 'react';
-import {
-  Document,
-  Page,
-  View,
-  Text,
-} from '@react-pdf/renderer';
-import { format, parseISO } from 'date-fns';
-import styles, { colors } from './styles';
+import { Document, Page, View, Text } from '@react-pdf/renderer';
+import { format, parseISO, getYear } from 'date-fns';
+import styles from './styles';
 import type {
   ReportInput,
   CalculationResult,
-  YearlyProjection,
-  TspProjectionYear,
-  FegliCostYear,
-  FehbProjectionYear,
-  High3Detail,
-  EligibilityDate,
-  ColaProjection,
 } from '../types';
 
 // ============================================================
@@ -48,9 +37,9 @@ const fmt = {
     });
     return neg ? `($${s})` : `$${s}`;
   },
-  pct: (v: number | undefined | null): string => {
+  pct: (v: number | undefined | null, decimals = 2): string => {
     if (v == null || isNaN(v)) return '0.00%';
-    return `${(v * 100).toFixed(2)}%`;
+    return `${(v * 100).toFixed(decimals)}%`;
   },
   pctWhole: (v: number | undefined | null): string => {
     if (v == null || isNaN(v)) return '0%';
@@ -58,25 +47,16 @@ const fmt = {
   },
   date: (iso: string | undefined | null): string => {
     if (!iso) return 'N/A';
-    try {
-      return format(parseISO(iso), 'MM/dd/yyyy');
-    } catch {
-      return iso;
-    }
+    try { return format(parseISO(iso), 'MM-dd-yy'); } catch { return iso ?? 'N/A'; }
   },
   dateLong: (iso: string | undefined | null): string => {
     if (!iso) return 'N/A';
-    try {
-      return format(parseISO(iso), 'MMMM d, yyyy');
-    } catch {
-      return iso;
-    }
+    try { return format(parseISO(iso), 'MMMM d, yyyy'); } catch { return iso ?? 'N/A'; }
   },
   num: (v: number | undefined | null, decimals = 2): string => {
     if (v == null || isNaN(v)) return '0';
     return v.toFixed(decimals);
   },
-  yrsmos: (y: number, m: number): string => `${y} yrs, ${m} mos`,
 };
 
 // ============================================================
@@ -84,50 +64,37 @@ const fmt = {
 // ============================================================
 
 interface ReportPageProps {
-  sectionTitle: string;
+  sectionTitle?: string;
   children: React.ReactNode;
+  brand?: string;
+  phone?: string;
 }
 
-interface ReportPageInternalProps extends ReportPageProps {
-  showWatermark?: boolean;
-}
-
-/** Standard report page with header + footer */
-const ReportPageInternal: React.FC<ReportPageInternalProps> = ({ sectionTitle, children, showWatermark }) => (
+const ReportPage: React.FC<ReportPageProps> = ({ sectionTitle, children, brand, phone }) => (
   <Page size="LETTER" style={styles.page}>
-    {showWatermark && <Watermark />}
-    {/* Header */}
-    <View style={styles.header} fixed>
-      <Text style={styles.headerBrand}>Capital Wealth Advisors</Text>
-      <Text style={styles.headerSection}>{sectionTitle}</Text>
-    </View>
-    {/* Body */}
+    {sectionTitle && (
+      <View style={styles.header} fixed>
+        <Text style={styles.headerBrand}>{brand ?? 'Capital Wealth'}</Text>
+        <Text style={styles.headerSection}>{sectionTitle}</Text>
+      </View>
+    )}
     {children}
-    {/* Footer */}
     <View style={styles.footer} fixed>
       <Text style={styles.footerText}>
-        Confidential — Prepared by Capital Wealth Advisors
+        {brand ?? 'Capital Wealth'}
+        {phone ? ` - ${phone}` : ''}
       </Text>
       <Text
         style={styles.pageNumber}
-        render={({ pageNumber, totalPages }) =>
-          `Page ${pageNumber} of ${totalPages}`
-        }
+        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
       />
     </View>
   </Page>
 );
 
-// Default export used below — will be replaced by the component that injects watermark
-const ReportPage: React.FC<ReportPageProps> = (props) => (
-  <ReportPageInternal {...props} />
-);
-
-/** Summary row (label: value) */
+/** Label / value row used on the summary page */
 const SRow: React.FC<{ label: string; value: string; bold?: boolean }> = ({
-  label,
-  value,
-  bold,
+  label, value, bold,
 }) => (
   <View style={styles.summaryRow}>
     <Text style={styles.summaryLabel}>{label}</Text>
@@ -135,100 +102,55 @@ const SRow: React.FC<{ label: string; value: string; bold?: boolean }> = ({
   </View>
 );
 
-/** Generic table */
 interface TableColumn {
   header: string;
-  width: string | number; // flex or fixed
-  align?: 'left' | 'right';
+  width: string | number;
+  align?: 'left' | 'right' | 'center';
 }
 
 interface TableProps {
   columns: TableColumn[];
-  rows: string[][];
+  rows: (string | number)[][];
 }
 
 const DataTable: React.FC<TableProps> = ({ columns, rows }) => (
   <View style={styles.table}>
-    {/* Header */}
     <View style={styles.tableHeader}>
       {columns.map((col, ci) => (
         <Text
           key={ci}
           style={[
-            col.align === 'left'
-              ? styles.tableHeaderCellLeft
-              : styles.tableHeaderCell,
-            { flex: typeof col.width === 'number' ? col.width : undefined, width: typeof col.width === 'string' ? col.width : undefined },
+            col.align === 'left' ? styles.tableHeaderCellLeft : styles.tableHeaderCell,
+            {
+              flex: typeof col.width === 'number' ? col.width : undefined,
+              width: typeof col.width === 'string' ? col.width : undefined,
+            },
           ]}
         >
           {col.header}
         </Text>
       ))}
     </View>
-    {/* Rows */}
     {rows.map((row, ri) => (
       <View key={ri} style={ri % 2 === 1 ? styles.tableRowAlt : styles.tableRow}>
         {row.map((cell, ci) => (
           <Text
             key={ci}
             style={[
-              columns[ci]?.align === 'left'
-                ? styles.tableCellLeft
-                : styles.tableCell,
+              columns[ci]?.align === 'left' ? styles.tableCellLeft : styles.tableCell,
               {
-                flex:
-                  typeof columns[ci]?.width === 'number'
-                    ? (columns[ci].width as number)
-                    : undefined,
-                width:
-                  typeof columns[ci]?.width === 'string'
-                    ? (columns[ci].width as string)
-                    : undefined,
+                flex: typeof columns[ci]?.width === 'number' ? (columns[ci].width as number) : undefined,
+                width: typeof columns[ci]?.width === 'string' ? (columns[ci].width as string) : undefined,
               },
             ]}
           >
-            {cell}
+            {String(cell)}
           </Text>
         ))}
       </View>
     ))}
   </View>
 );
-
-/** Highlight metric box */
-const MetricBox: React.FC<{ label: string; value: string }> = ({
-  label,
-  value,
-}) => (
-  <View style={styles.highlightBox}>
-    <Text style={styles.highlightLabel}>{label}</Text>
-    <Text style={styles.highlightValue}>{value}</Text>
-  </View>
-);
-
-// ============================================================
-// Helper: split projections into gov vs other
-// ============================================================
-
-function govIncome(p: YearlyProjection) {
-  return p.annuity + p.fersSupplement;
-}
-function otherIncome(p: YearlyProjection) {
-  return p.socialSecurity + p.tspWithdrawal + p.otherIncome;
-}
-function govExpenses(p: YearlyProjection) {
-  return (
-    p.fegliCost +
-    p.fehbCost +
-    p.survivorBenefitCost +
-    p.federalTax +
-    p.stateTax +
-    p.ltcPremium
-  );
-}
-function otherExpenses(p: YearlyProjection) {
-  return p.livingExpenses;
-}
 
 // ============================================================
 // Main Report Document
@@ -242,1521 +164,795 @@ export interface FederalReportProps {
   tier?: UserTier;
 }
 
-/** Watermark overlay for FREE tier pages */
-const Watermark: React.FC = () => (
-  <View
-    style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 999,
-    }}
-    fixed
-  >
-    <Text
-      style={{
-        fontSize: 60,
-        color: 'rgba(200, 200, 200, 0.25)',
-        transform: 'rotate(-45deg)',
-        fontWeight: 'bold',
-        letterSpacing: 8,
-      }}
-    >
-      SAMPLE REPORT
-    </Text>
-  </View>
-);
-
 const FederalRetirementReport: React.FC<FederalReportProps> = ({
   input,
   result,
-  tier = 'FREE',
 }) => {
-  const isFree = tier === 'FREE';
-  const isProfessional = tier === 'PROFESSIONAL' || tier === 'ENTERPRISE';
-  const projectionYears = input.projectionYears ?? 30;
-  const cola = input.colaAssumption ?? 0.02;
-  const projections = result.yearlyProjections.slice(0, projectionYears);
+  const brand = input.advisorCompany || 'Capital Wealth';
+  const advisorName = input.advisorName;
+  const phone = input.advisorPhone;
+  const email = input.advisorEmail;
 
-  // TSP combined projections
-  const tspCombined: TspProjectionYear[] = result.tsp.traditionalProjections.map(
-    (t, i) => {
-      const r = result.tsp.rothProjections[i];
-      return {
-        year: t.year,
-        age: t.age,
-        startBalance: t.startBalance + (r?.startBalance ?? 0),
-        contributions: t.contributions + (r?.contributions ?? 0),
-        governmentMatch: t.governmentMatch + (r?.governmentMatch ?? 0),
-        growth: t.growth + (r?.growth ?? 0),
-        endBalance: t.endBalance + (r?.endBalance ?? 0),
-      };
-    },
-  );
-
+  const dob = input.personal.dateOfBirth;
   const retDate = input.employment.plannedRetirementDate;
   const today = new Date().toISOString().slice(0, 10);
 
-  // FREE tier: max 10 pages, always watermarked
-  // PROFESSIONAL/ENTERPRISE: custom branding on cover
-  const WPage: React.FC<ReportPageProps> = (props) => (
-    <ReportPageInternal {...props} showWatermark={isFree} />
-  );
+  const dobDate = parseISO(dob);
+  const retDateParsed = parseISO(retDate);
+  const birthYear = getYear(dobDate);
+  const retYear = getYear(retDateParsed);
+  const currentAge = new Date().getFullYear() - birthYear;
+  const ageAtRetirement = retYear - birthYear -
+    (retDateParsed.getMonth() < dobDate.getMonth() ||
+      (retDateParsed.getMonth() === dobDate.getMonth() &&
+        retDateParsed.getDate() < dobDate.getDate()) ? 1 : 0);
 
-  // Collect all sections as an array for page-limiting
-  const sections: React.ReactNode[] = [];
-  let sectionIndex = 0;
-  const maxPages = isFree ? 10 : Infinity;
-  const canAddPage = () => sectionIndex < maxPages;
-  const addSection = (node: React.ReactNode) => {
-    if (canAddPage()) {
-      sections.push(node);
-      sectionIndex++;
-    }
+  // Salary, hourly
+  const salaryNow = input.employment.currentAnnualSalary;
+  const hourlyNow = salaryNow / 2087;
+  const salaryRate = input.employment.annualSalaryIncreaseRate;
+  const yearsToRet = retYear - new Date().getFullYear();
+  const salaryAtRet = salaryNow * Math.pow(1 + salaryRate, yearsToRet);
+  const hourlyAtRet = salaryAtRet / 2087;
+
+  // Service breakdown
+  const civilianYears = input.employment.creditableServiceYears;
+  const civilianMonths = input.employment.creditableServiceMonths;
+  const sickLeaveYears = Math.floor(result.annuity.sickLeaveCredit);
+  const sickLeaveMonthsExt = Math.round((result.annuity.sickLeaveCredit - sickLeaveYears) * 12);
+
+  // Survivor numbers (cost / benefit) — pulled from result
+  const annualNoSurv = result.annuity.annualAnnuity;
+  const monthlyNoSurv = result.annuity.monthlyAnnuity;
+  const survivorElection = result.survivorBenefit.election;
+  const annualSurvivorCost = result.survivorBenefit.annualCost;
+  const monthlySurvivorCost = result.survivorBenefit.monthlyCost;
+  const survivorAnnualBenefit = result.survivorBenefit.survivorAnnualBenefit;
+  const survivorMonthlyBenefit = result.survivorBenefit.survivorMonthlyBenefit;
+  const annualWithSurv = annualNoSurv - annualSurvivorCost;
+  const monthlyWithSurv = monthlyNoSurv - monthlySurvivorCost;
+
+  const cola = input.colaAssumption ?? 0.02;
+  const survivorPct =
+    survivorElection === '50_PERCENT' ? 0.5 :
+    survivorElection === '25_PERCENT' ? 0.25 : 0;
+
+  // ---------- Page 5: Surviving Spouse 24-year table ----------
+  const survivorTable: (string | number)[][] = [];
+  let cumDiff = 0;
+  for (let i = 0; i < 24; i++) {
+    const age = ageAtRetirement + i;
+    const year = retYear + i;
+    const factor = Math.pow(1 + cola, i);
+    const monthlyA = monthlyNoSurv * factor;
+    const monthlyB = monthlyWithSurv * factor;
+    const survMo = survivorMonthlyBenefit * factor;
+    const monthlyDiff = monthlyA - monthlyB;
+    const annualDiff = monthlyDiff * 12;
+    cumDiff += annualDiff;
+    survivorTable.push([
+      i + 1,
+      age,
+      fmt.currency(monthlyA),
+      fmt.currency(monthlyB),
+      fmt.currency(survMo),
+      fmt.currency(monthlyDiff),
+      fmt.currency(annualDiff),
+      fmt.currency(cumDiff),
+    ]);
+  }
+
+  // ---------- Page 4: Proposed & Delayed Retirement table ----------
+  // Columns = years from retirement (proposed) through delayed +11
+  const delayedAges: number[] = [];
+  for (let i = 0; i <= 11; i++) delayedAges.push(ageAtRetirement + i);
+
+  const high3 = result.annuity.high3Average;
+  const fersIsEnhanced = (age: number, totalYrs: number) =>
+    age >= 62 && totalYrs >= 20;
+  const buildAnnuityRow = (delayYears: number) => {
+    const age = ageAtRetirement + delayYears;
+    const civYears = civilianYears + delayYears;
+    const civMonths = civilianMonths;
+    // Sick leave grows by ~104 hours/yr typical accrual; old report shows growth.
+    // We approximate by adding 1 month per year delayed (rough but matches ballpark).
+    const slY = sickLeaveYears + Math.floor((sickLeaveMonthsExt + delayYears) / 12);
+    const slM = (sickLeaveMonthsExt + delayYears) % 12;
+    const totalDecimal = civYears + civMonths / 12 + slY + slM / 12;
+    const projHigh3 = high3 * Math.pow(1 + salaryRate, delayYears);
+    const high3Change = delayYears === 0 ? 0 : projHigh3 - high3 * Math.pow(1 + salaryRate, delayYears - 1);
+    const mult = fersIsEnhanced(age, totalDecimal) ? 0.011 : 0.01;
+    const annNoSurv = mult * projHigh3 * totalDecimal;
+    const moNoSurv = annNoSurv / 12;
+    const annWith = annNoSurv * (1 - (survivorPct === 0.5 ? 0.10 : survivorPct === 0.25 ? 0.05 : 0));
+    const moWith = annWith / 12;
+    const annSurvBen = annNoSurv * survivorPct;
+    const moSurvBen = annSurvBen / 12;
+    const annCostSurv = annNoSurv - annWith;
+    const moCostSurv = annCostSurv / 12;
+    return {
+      age, civYears, civMonths, slY, slM, projHigh3, high3Change,
+      annNoSurv, moNoSurv, annWith, moWith, annSurvBen, moSurvBen, annCostSurv, moCostSurv,
+    };
   };
 
-  // ================================================================
-  // RENDER
-  // ================================================================
+  const delayedRows = delayedAges.map((_, i) => buildAnnuityRow(i));
+
+  // ---------- Page 8: TSP Contributions yearly tables ----------
+  const tspTrad = result.tsp.traditionalProjections.slice(0, 5);
+
+  // ---------- Page 11: FEGLI 27-row table ----------
+  const fegliRows: (string | number)[][] = [];
+  let accumCost = 0;
+  const fegliProjections = result.fegli.costProjections.slice(0, 27);
+  let avgBiweekly = 0, avgMonthly = 0, avgCount = 0;
+  for (const p of fegliProjections) {
+    const annualPremium = p.totalCost;
+    const biweekly = annualPremium / 26;
+    const monthly = annualPremium / 12;
+    accumCost += annualPremium;
+    if (p.age <= ageAtRetirement) { avgBiweekly += biweekly; avgMonthly += monthly; avgCount++; }
+    const yearSalaryHere = salaryNow * Math.pow(1 + salaryRate, p.year - new Date().getFullYear());
+    fegliRows.push([
+      `${p.age}/${p.age + 1}`,
+      p.age <= ageAtRetirement ? fmt.currency(yearSalaryHere) : '$0.00',
+      p.age <= ageAtRetirement ? fmt.currency(biweekly) : '$0.00',
+      p.age <= ageAtRetirement ? fmt.currency(monthly) : '$0.00',
+      p.age <= ageAtRetirement ? fmt.currency(annualPremium) : '$0.00',
+      fmt.currency(accumCost),
+      fmt.currency(p.basicCoverage),
+      fmt.currency(p.optionACoverage),
+      fmt.currency(p.optionBCoverage),
+      fmt.currency(p.optionCCoverage),
+      fmt.currency(p.basicCoverage + p.optionACoverage + p.optionBCoverage + p.optionCCoverage),
+    ]);
+  }
+  const avgBi = avgCount > 0 ? avgBiweekly / avgCount : 0;
+  const avgMo = avgCount > 0 ? avgMonthly / avgCount : 0;
+
+  // ---------- Page 12: FEHB table ----------
+  const fehbRows: (string | number)[][] = [];
+  let accumFehb = 0;
+  let prevAnnualFehb = 0;
+  for (const p of result.fehb.projections.slice(0, 26)) {
+    const monthly = p.annualPremium / 12;
+    const biweekly = p.annualPremium / 26;
+    accumFehb += p.annualPremium;
+    const change = prevAnnualFehb === 0 ? 0 : p.annualPremium - prevAnnualFehb;
+    prevAnnualFehb = p.annualPremium;
+    fehbRows.push([
+      `${p.age}/${p.age + 1}`,
+      fmt.currency(biweekly),
+      fmt.currency(monthly),
+      fmt.currency(p.annualPremium),
+      fmt.currency(accumFehb),
+      fmt.currency(change),
+    ]);
+  }
+  const fehbBiweekly = result.fehb.currentMonthlyPremium * 12 / 26;
+  const fehbMonthly = result.fehb.currentMonthlyPremium;
+  const fehbAnnual = result.fehb.currentMonthlyPremium * 12;
+  const fehbIncreaseRate = input.fehb.premiumIncreaseRate;
+
+  // ---------- Page 13: FERS Supplement + SS table ----------
+  const fersAnnuityProjections = result.colaProjections.slice(0, 24);
+  const ssProjections = result.socialSecurity.yearlyProjections;
+  const ssMap = new Map(ssProjections.map(s => [s.year, s.annualBenefit]));
+  const fersSuppMonthly = result.fersSupplement.monthlyAmount;
+  const fersSuppEndAge = 62;
+
+  const supplementSsRows: (string | number)[][] = [];
+  let prevTotal = 0;
+  for (let i = 0; i < 24; i++) {
+    const year = retYear + i;
+    const age = ageAtRetirement + i;
+    const fersAnnuity = fersAnnuityProjections[i]?.annuityAfterCola ?? annualWithSurv * Math.pow(1 + cola, i);
+    const fersAnnuityMo = Math.round(fersAnnuity / 12);
+    const fersSupp = age < fersSuppEndAge ? fersSuppMonthly : 0;
+    const ssAnnual = ssMap.get(year) ?? 0;
+    const ssMonthly = Math.round(ssAnnual / 12);
+    const total = fersAnnuityMo + fersSupp + ssMonthly;
+    const change = prevTotal === 0 ? 0 : total - prevTotal;
+    prevTotal = total;
+    supplementSsRows.push([
+      age,
+      fmt.currencyWhole(fersAnnuityMo),
+      fmt.currencyWhole(fersSupp),
+      fmt.currencyWhole(ssMonthly),
+      fmt.currencyWhole(total),
+      fmt.currencyWhole(change),
+    ]);
+  }
+
   return (
     <Document
-      title={`Federal Retirement Report — ${input.personal.fullName}`}
-      author={input.advisorName ?? 'Capital Wealth Advisors'}
+      title={`Federal Employee Benefits Analysis — ${input.personal.fullName}`}
+      author={brand}
     >
       {/* ============================================================
-          A. COVER PAGE
+          PAGE 1 — COVER
           ============================================================ */}
       <Page size="LETTER" style={styles.coverPage}>
-        {isFree && <Watermark />}
-        <Text style={styles.coverLogo}>
-          Capital Wealth Advisors
-        </Text>
-        <Text style={styles.coverSubtitle}>STRATEGIC INCOME &amp; TAX PLANNING FOR YOUR RETIREMENT</Text>
-        <View style={styles.coverDivider} />
-        <Text style={styles.coverTitle}>
-          Retirement Money Map
-        </Text>
-        <Text style={styles.coverClientName}>
-          Prepared for {input.personal.fullName}
-        </Text>
-        <View style={styles.spacerLg} />
-        <Text style={styles.coverDate}>
-          Report Date: {fmt.dateLong(today)}
-        </Text>
-        <Text style={styles.coverDate}>
-          Planned Retirement: {fmt.dateLong(retDate)}
-        </Text>
-        {input.advisorName && (
-          <View style={{ marginTop: 20, alignItems: 'center' }}>
-            <Text style={styles.coverAdvisor}>
-              Prepared by: {input.advisorName}
-            </Text>
-            {input.advisorCompany && (
-              <Text style={styles.coverAdvisor}>{input.advisorCompany}</Text>
-            )}
-            {input.advisorPhone && (
-              <Text style={styles.coverAdvisor}>{input.advisorPhone}</Text>
-            )}
-            {input.advisorEmail && (
-              <Text style={styles.coverAdvisor}>{input.advisorEmail}</Text>
-            )}
-          </View>
-        )}
-        <View style={styles.coverFooterBlock}>
-          <Text style={styles.coverDisclaimer}>
-            This report is for illustrative purposes only and does not constitute
-            financial, tax, or legal advice. Projections are based on assumptions
-            provided and may not reflect actual future results. Consult a qualified
-            professional before making retirement decisions.
+        <View style={{ alignItems: 'center', marginTop: 60 }}>
+          <Text style={[styles.coverLogo, { color: '#1a3a5c', fontSize: 36 }]}>CAPITAL</Text>
+          <Text style={[styles.coverLogo, { color: '#5a7a8a', fontSize: 32, marginTop: -4 }]}>WEALTH</Text>
+        </View>
+        <View style={{ marginTop: 80, alignItems: 'center' }}>
+          <Text style={{ fontSize: 24, color: '#000', fontWeight: 'bold', textAlign: 'center' }}>
+            Federal Employee
           </Text>
+          <Text style={{ fontSize: 24, color: '#000', fontWeight: 'bold', textAlign: 'center' }}>
+            Benefits Analysis
+          </Text>
+          <Text style={{ fontSize: 11, color: '#000', marginTop: 8 }}>
+            {fmt.dateLong(today)}
+          </Text>
+        </View>
+        <View style={{ marginTop: 80, alignItems: 'center' }}>
+          {(() => {
+            const parts = (input.personal.fullName || '').trim().split(/\s+/);
+            const first = parts[0] ?? '';
+            const last = parts.slice(1).join(' ');
+            return (
+              <>
+                <Text style={{ fontSize: 14, color: '#000' }}>{first}</Text>
+                <Text style={{ fontSize: 14, color: '#000' }}>{last}</Text>
+              </>
+            );
+          })()}
+        </View>
+        <View style={{ marginTop: 60, alignItems: 'center' }}>
+          <View style={{ width: 280, borderTopWidth: 1, borderTopColor: '#000' }} />
+          <View style={{ marginTop: 8, alignItems: 'center' }}>
+            <Text style={{ fontSize: 10, color: '#000' }}>{brand}</Text>
+            {advisorName && advisorName !== brand && (
+              <Text style={{ fontSize: 10, color: '#000' }}>{advisorName}</Text>
+            )}
+            <Text style={{ fontSize: 10, color: '#000' }}>1850 W. Ashton Blvd #175</Text>
+            <Text style={{ fontSize: 10, color: '#000' }}>Lehi, UT 84043</Text>
+            {phone && <Text style={{ fontSize: 10, color: '#000' }}>Phone: {phone}</Text>}
+            {email && <Text style={{ fontSize: 10, color: '#000' }}>Email: {email}</Text>}
+          </View>
+          <View style={{ width: 280, borderTopWidth: 1, borderTopColor: '#000', marginTop: 8 }} />
+        </View>
+        <View style={styles.footer} fixed>
+          <Text
+            style={styles.pageNumber}
+            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+          />
         </View>
       </Page>
 
       {/* ============================================================
-          B. DISCLAIMER PAGE
+          PAGE 2 — DISCLAIMER
           ============================================================ */}
-      <WPage sectionTitle="Important Disclosures">
-        <Text style={styles.sectionTitle}>Important Disclosures</Text>
-        <View style={styles.goldDivider} />
-        <Text style={styles.text}>
-          This Federal Retirement Benefits Analysis has been prepared for{' '}
-          {input.personal.fullName} by Capital Wealth Advisors
-          {input.advisorName ? ` and ${input.advisorName}` : ''}.
-        </Text>
-        <Text style={styles.text}>
-          The projections contained in this report are based on data provided by
-          the client and assumptions about future rates of return, inflation,
-          cost-of-living adjustments, and tax rates. Actual results will vary.
-        </Text>
-        <Text style={[styles.text, { marginTop: 8 }]}>
-          Key assumptions used in this report:
-        </Text>
-        <View style={styles.summaryBox}>
-          <SRow label="COLA Assumption" value={fmt.pct(cola)} />
-          <SRow label="Projection Period" value={`${projectionYears} years`} />
-          <SRow
-            label="Federal Tax Rate (effective)"
-            value={fmt.pct(input.tax.federalTaxRate)}
-          />
-          <SRow
-            label="State Tax Rate (effective)"
-            value={fmt.pct(input.tax.stateTaxRate)}
-          />
-          <SRow
-            label="Filing Status"
-            value={input.tax.filingStatus.replace(/_/g, ' ')}
-          />
-          <SRow
-            label="Salary Increase Assumption"
-            value={fmt.pct(input.employment.annualSalaryIncreaseRate)}
-          />
-          <SRow
-            label="TSP Expected Return"
-            value={fmt.pct(input.tsp.expectedReturnRate)}
-          />
-          <SRow
-            label="FEHB Premium Increase"
-            value={fmt.pct(input.fehb.premiumIncreaseRate)}
-          />
-        </View>
-        <Text style={styles.text}>
-          This report does not guarantee any particular outcome. Federal
-          retirement benefits are governed by law and regulation, which may
-          change. Benefits shown are estimates and should be verified with the
-          Office of Personnel Management (OPM).
-        </Text>
-        <Text style={styles.text}>
-          Capital Wealth Advisors is not affiliated with the U.S. Government,
-          OPM, or any federal agency. All trademarks are property of their
-          respective owners.
-        </Text>
-        <Text style={[styles.text, styles.bold, { marginTop: 12 }]}>
-          Past performance is not indicative of future results. All investments
-          involve risk, including the possible loss of principal.
-        </Text>
-      </WPage>
-
-      {/* ============================================================
-          C. BENEFITS SUMMARY
-          ============================================================ */}
-      <WPage sectionTitle="Benefits Summary">
-        <Text style={styles.sectionTitle}>Benefits Summary</Text>
-        <Text style={styles.sectionSubtitle}>
-          Overview of your federal retirement benefits at a glance
-        </Text>
-
-        <View style={styles.comparisonRow}>
-          <View style={styles.highlightBox}>
-            <Text style={styles.highlightLabel}>Annual Annuity</Text>
-            <Text style={styles.highlightValue}>
-              {fmt.currency(result.annuity.annualAnnuity)}
-            </Text>
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 30 }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginTop: 30, marginBottom: 20 }}>
+            Disclaimer
+          </Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, textAlign: 'justify' }}>
+            This report illustrates estimates of cost and benefits for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS), Federal Employees Group Life Insurance (FEGLI), Federal Employees Health Benefits Program (FEHB), Long Term Care (LTC) Insurance, Social Security System benefits, and the Thrift Savings Plan (TSP). Some estimates are based on assumptions, which may affect the results, and may differ from actual experience. Since future costs and benefits cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report, and it is recommended to consult with your personnel office or the Office of Personnel Management (OPM), Retirement Information Office 1-888-767-6738. {brand} cannot provide retirement analysis and decision information to you. The analysis is provided 'AS IS' without warranties of any kind (including the implied warranties of merchantability and fitness for a particular purpose). No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis, and you may not rely upon such information or advice. Neither {brand} nor anyone else who has been involved in the creation, production, or delivery of this analysis shall be liable for any direct, indirect, consequential, or incidental damages (including, but not limited to, damages for loss of business or personal profits, business or personal interruption, and loss of business or personal information) arising from the use of (or inability to use) this analysis.
+          </Text>
+          <View style={{ alignItems: 'center', marginVertical: 16 }}>
+            <View style={{ width: 200, borderTopWidth: 1, borderTopColor: '#000' }} />
           </View>
-          <View style={styles.highlightBox}>
-            <Text style={styles.highlightLabel}>Monthly Annuity</Text>
-            <Text style={styles.highlightValue}>
-              {fmt.currency(result.annuity.monthlyAnnuity)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.summaryBox}>
-          <SRow label="Retirement System" value={input.employment.retirementSystem.replace(/_/g, ' ')} />
-          <SRow label="Planned Retirement Date" value={fmt.date(retDate)} />
-          <SRow label="Retirement Age" value={`${result.proposedRetirement.age}`} />
-          <SRow label="High-3 Average Salary" value={fmt.currency(result.annuity.high3Average)} />
-          <SRow
-            label="Total Creditable Service"
-            value={fmt.yrsmos(result.annuity.totalServiceYears, result.annuity.totalServiceMonths)}
-          />
-          <SRow label="Sick Leave Credit" value={`${fmt.num(result.annuity.sickLeaveCredit, 2)} years`} />
-          <SRow label="Multiplier Used" value={fmt.pct(result.annuity.multiplier)} />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <SRow label="Survivor Benefit Election" value={result.survivorBenefit.election.replace(/_/g, ' ')} />
-          <SRow label="Survivor Annual Cost" value={fmt.currency(result.survivorBenefit.annualCost)} />
-          <SRow label="Survivor Annual Benefit" value={fmt.currency(result.survivorBenefit.survivorAnnualBenefit)} />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <SRow
-            label="FERS Supplement (monthly)"
-            value={result.fersSupplement.eligible ? fmt.currency(result.fersSupplement.monthlyAmount) : 'Not Eligible'}
-          />
-          <SRow
-            label="Social Security (at start age)"
-            value={fmt.currency(result.socialSecurity.monthlyBenefitAtStartAge)}
-          />
-          <SRow label="TSP Balance at Retirement" value={fmt.currencyWhole(result.tsp.totalAtRetirement)} />
-          <SRow label="FEGLI Total Coverage" value={fmt.currencyWhole(result.fegli.currentCoverage.total)} />
-          <SRow label="FEHB Monthly Premium" value={fmt.currency(result.fehb.currentMonthlyPremium)} />
-          <SRow label="Income Replacement Ratio" value={fmt.pct(result.incomeComparison.replacementRatio)} />
-        </View>
-      </WPage>
-
-      {/* ============================================================
-          D. FEDERAL INCOME ANALYSIS — MONTHLY COMPARISON
-          ============================================================ */}
-      <WPage sectionTitle="Federal Income Analysis">
-        <Text style={styles.sectionTitle}>Federal Income Analysis</Text>
-        <Text style={styles.sectionSubtitle}>
-          Last paycheck vs. first retirement check — monthly comparison
-        </Text>
-
-        <View style={styles.comparisonRow}>
-          {/* Last Paycheck */}
-          <View style={styles.comparisonBox}>
-            <Text style={styles.comparisonTitle}>Last Paycheck (Monthly)</Text>
-            <SRow label="Gross Monthly Salary" value={fmt.currency(result.incomeComparison.lastPaycheck.grossMonthly)} />
-            <SRow label="Retirement Contribution" value={fmt.currency(-result.incomeComparison.lastPaycheck.retirementContribution)} />
-            <SRow label="TSP Contribution" value={fmt.currency(-result.incomeComparison.lastPaycheck.tspContribution)} />
-            <SRow label="FICA / Medicare" value={fmt.currency(-result.incomeComparison.lastPaycheck.ficaMedicare)} />
-            <SRow label="Federal Tax" value={fmt.currency(-result.incomeComparison.lastPaycheck.federalTax)} />
-            <SRow label="State Tax" value={fmt.currency(-result.incomeComparison.lastPaycheck.stateTax)} />
-            <SRow label="FEGLI Premium" value={fmt.currency(-result.incomeComparison.lastPaycheck.fegliPremium)} />
-            <SRow label="FEHB Premium" value={fmt.currency(-result.incomeComparison.lastPaycheck.fehbPremium)} />
-            <SRow label="Other Deductions" value={fmt.currency(-result.incomeComparison.lastPaycheck.otherDeductions)} />
-            <View style={styles.divider} />
-            <SRow label="Net Monthly Pay" value={fmt.currency(result.incomeComparison.lastPaycheck.netMonthly)} bold />
-          </View>
-
-          {/* First Retirement Check */}
-          <View style={styles.comparisonBox}>
-            <Text style={styles.comparisonTitle}>First Retirement Check</Text>
-            <SRow label="Gross Annuity" value={fmt.currency(result.incomeComparison.firstRetirementCheck.grossAnnuity)} />
-            <SRow label="Survivor Benefit Cost" value={fmt.currency(-result.incomeComparison.firstRetirementCheck.survivorBenefitCost)} />
-            <SRow label="Federal Tax" value={fmt.currency(-result.incomeComparison.firstRetirementCheck.federalTax)} />
-            <SRow label="State Tax" value={fmt.currency(-result.incomeComparison.firstRetirementCheck.stateTax)} />
-            <SRow label="FEGLI Premium" value={fmt.currency(-result.incomeComparison.firstRetirementCheck.fegliPremium)} />
-            <SRow label="FEHB Premium" value={fmt.currency(-result.incomeComparison.firstRetirementCheck.fehbPremium)} />
-            <SRow label="FERS Supplement" value={fmt.currency(result.incomeComparison.firstRetirementCheck.fersSupplement)} />
-            <SRow label="Social Security" value={fmt.currency(result.incomeComparison.firstRetirementCheck.socialSecurity)} />
-            <SRow label="TSP Withdrawal" value={fmt.currency(result.incomeComparison.firstRetirementCheck.tspWithdrawal)} />
-            <SRow label="Other Income" value={fmt.currency(result.incomeComparison.firstRetirementCheck.otherIncome)} />
-            <View style={styles.divider} />
-            <SRow label="Net Monthly Income" value={fmt.currency(result.incomeComparison.firstRetirementCheck.netMonthly)} bold />
-          </View>
-        </View>
-
-        <View style={styles.summaryBox}>
-          <SRow
-            label="Monthly Difference"
-            value={fmt.currency(result.incomeComparison.monthlyDifference)}
-            bold
-          />
-          <SRow
-            label="Income Replacement Ratio"
-            value={fmt.pct(result.incomeComparison.replacementRatio)}
-            bold
-          />
-        </View>
-      </WPage>
-
-      {/* ============================================================
-          E. ANNUAL INCOME — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Annual Income — Government">
-        <Text style={styles.sectionTitle}>Annual Income — Government Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Annuity and FERS Supplement income projections
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Annuity', width: 1 },
-            { header: 'FERS Supp.', width: 1 },
-            { header: 'Total Gov Income', width: 1.2 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.annuity),
-            fmt.currency(p.fersSupplement),
-            fmt.currency(govIncome(p)),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          F. MONTHLY INCOME — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Monthly Income — Government">
-        <Text style={styles.sectionTitle}>Monthly Income — Government Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Monthly breakdown of government income
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Annuity', width: 1 },
-            { header: 'FERS Supp.', width: 1 },
-            { header: 'Total Gov/Mo', width: 1.2 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.annuity / 12),
-            fmt.currency(p.fersSupplement / 12),
-            fmt.currency(govIncome(p) / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          G. ANNUAL INCOME — OTHER SOURCES
-          ============================================================ */}
-      <WPage sectionTitle="Annual Income — Other Sources">
-        <Text style={styles.sectionTitle}>Annual Income — Other Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Social Security, TSP withdrawals, and other income
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Soc. Sec.', width: 1 },
-            { header: 'TSP W/D', width: 1 },
-            { header: 'Other', width: 0.8 },
-            { header: 'Total Other', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.socialSecurity),
-            fmt.currency(p.tspWithdrawal),
-            fmt.currency(p.otherIncome),
-            fmt.currency(otherIncome(p)),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          H. MONTHLY INCOME — OTHER SOURCES
-          ============================================================ */}
-      <WPage sectionTitle="Monthly Income — Other Sources">
-        <Text style={styles.sectionTitle}>Monthly Income — Other Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Monthly breakdown of non-government income
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Soc. Sec.', width: 1 },
-            { header: 'TSP W/D', width: 1 },
-            { header: 'Other', width: 0.8 },
-            { header: 'Total Other/Mo', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.socialSecurity / 12),
-            fmt.currency(p.tspWithdrawal / 12),
-            fmt.currency(p.otherIncome / 12),
-            fmt.currency(otherIncome(p) / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          I. ANNUAL EXPENSES — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Annual Expenses — Government">
-        <Text style={styles.sectionTitle}>Annual Expenses — Government</Text>
-        <Text style={styles.sectionSubtitle}>
-          FEGLI, FEHB, survivor benefit costs, taxes, and LTC premiums
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'FEGLI', width: 0.8 },
-            { header: 'FEHB', width: 0.8 },
-            { header: 'Survivor', width: 0.8 },
-            { header: 'Fed Tax', width: 0.9 },
-            { header: 'State Tax', width: 0.8 },
-            { header: 'LTC', width: 0.7 },
-            { header: 'Total', width: 1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.fegliCost),
-            fmt.currency(p.fehbCost),
-            fmt.currency(p.survivorBenefitCost),
-            fmt.currency(p.federalTax),
-            fmt.currency(p.stateTax),
-            fmt.currency(p.ltcPremium),
-            fmt.currency(govExpenses(p)),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          J. MONTHLY EXPENSES — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Monthly Expenses — Government">
-        <Text style={styles.sectionTitle}>Monthly Expenses — Government</Text>
-        <Text style={styles.sectionSubtitle}>
-          Monthly government-related expense breakdown
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'FEGLI', width: 0.8 },
-            { header: 'FEHB', width: 0.8 },
-            { header: 'Survivor', width: 0.8 },
-            { header: 'Fed Tax', width: 0.9 },
-            { header: 'State Tax', width: 0.8 },
-            { header: 'LTC', width: 0.7 },
-            { header: 'Total/Mo', width: 1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.fegliCost / 12),
-            fmt.currency(p.fehbCost / 12),
-            fmt.currency(p.survivorBenefitCost / 12),
-            fmt.currency(p.federalTax / 12),
-            fmt.currency(p.stateTax / 12),
-            fmt.currency(p.ltcPremium / 12),
-            fmt.currency(govExpenses(p) / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          K. ANNUAL EXPENSES — OTHER SOURCES (Living)
-          ============================================================ */}
-      <WPage sectionTitle="Annual Expenses — Living">
-        <Text style={styles.sectionTitle}>Annual Expenses — Other Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Projected living expenses (housing, food, transportation, etc.)
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Age', width: 0.5 },
-            { header: 'Living Expenses', width: 1.5 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.livingExpenses),
-          ])}
-        />
-        <View style={styles.summaryBox}>
-          <Text style={[styles.textSmall, styles.italic]}>
-            Living expenses include: housing, utilities, transportation, food,
-            out-of-pocket healthcare, insurance, debt payments, entertainment,
-            travel, charitable giving, and other expenses. Adjusted annually for
-            inflation at the COLA assumption rate of {fmt.pct(cola)}.
+          <Text style={{ fontSize: 9, lineHeight: 1.5, textAlign: 'justify' }}>
+            {brand}, LLC &amp; CWA Insurance Services, LLC is not affiliated with or endorsed by the U.S. Government, Social Security Administration, Office of Personnel Management, or any federal agency. This is an independent educational seminar provided by {brand}, a registered investment advisor. All information presented is for educational purposes only and should not be considered official government guidance.
           </Text>
         </View>
-      </WPage>
+      </ReportPage>
 
       {/* ============================================================
-          L. MONTHLY EXPENSES — OTHER SOURCES (Living)
+          PAGE 3 — FEDERAL EMPLOYEE BENEFITS SUMMARY
           ============================================================ */}
-      <WPage sectionTitle="Monthly Expenses — Living">
-        <Text style={styles.sectionTitle}>Monthly Expenses — Other Sources</Text>
-        <Text style={styles.sectionSubtitle}>
-          Monthly living expense projections
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Age', width: 0.5 },
-            { header: 'Living Expenses/Mo', width: 1.5 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.livingExpenses / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          M. ANNUAL NET — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Annual Net — Government">
-        <Text style={styles.sectionTitle}>
-          Annual Income/Expense — Government Net
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Government income minus government expenses
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Gov Income', width: 1 },
-            { header: 'Gov Expenses', width: 1 },
-            { header: 'Net', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(govIncome(p)),
-            fmt.currency(govExpenses(p)),
-            fmt.currency(govIncome(p) - govExpenses(p)),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          N. MONTHLY NET — GOVERNMENT
-          ============================================================ */}
-      <WPage sectionTitle="Monthly Net — Government">
-        <Text style={styles.sectionTitle}>
-          Monthly Income/Expense — Government Net
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Monthly government net income
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Gov Income/Mo', width: 1 },
-            { header: 'Gov Expense/Mo', width: 1 },
-            { header: 'Net/Mo', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(govIncome(p) / 12),
-            fmt.currency(govExpenses(p) / 12),
-            fmt.currency((govIncome(p) - govExpenses(p)) / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          O. ANNUAL NET — ALL SOURCES COMBINED
-          ============================================================ */}
-      <WPage sectionTitle="Annual Net — All Sources">
-        <Text style={styles.sectionTitle}>
-          Annual Income/Expense — All Sources Combined
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Complete annual picture: all income minus all expenses
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'Total Income', width: 1 },
-            { header: 'Total Expenses', width: 1 },
-            { header: 'Net Income', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.totalIncome),
-            fmt.currency(p.totalExpenses + p.livingExpenses),
-            fmt.currency(p.netIncome),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          P. MONTHLY NET — ALL SOURCES COMBINED
-          ============================================================ */}
-      <WPage sectionTitle="Monthly Net — All Sources">
-        <Text style={styles.sectionTitle}>
-          Monthly Income/Expense — All Sources Combined
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Complete monthly picture
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'Total Income/Mo', width: 1 },
-            { header: 'Total Expense/Mo', width: 1 },
-            { header: 'Net/Mo', width: 1.1 },
-          ]}
-          rows={projections.map((p) => [
-            String(p.year),
-            String(p.age),
-            fmt.currency(p.totalIncome / 12),
-            fmt.currency((p.totalExpenses + p.livingExpenses) / 12),
-            fmt.currency(p.netIncome / 12),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          Q. PROPOSED & DELAYED RETIREMENT COMPARISON
-          ============================================================ */}
-      <WPage sectionTitle="Retirement Comparison">
-        <Text style={styles.sectionTitle}>
-          Proposed vs. Delayed Retirement Comparison
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Impact of retiring at planned date versus a later date
-        </Text>
-
-        <View style={styles.comparisonRow}>
-          <View style={styles.comparisonBox}>
-            <Text style={styles.comparisonTitle}>Proposed Retirement</Text>
-            <SRow label="Date" value={fmt.date(result.proposedRetirement.date)} />
-            <SRow label="Age" value={String(result.proposedRetirement.age)} />
-            <SRow
-              label="Annual Annuity"
-              value={fmt.currency(result.proposedRetirement.annualAnnuity)}
-              bold
-            />
-            <SRow
-              label="Monthly Annuity"
-              value={fmt.currency(result.proposedRetirement.monthlyAnnuity)}
-              bold
-            />
-          </View>
-          <View style={styles.comparisonBox}>
-            <Text style={styles.comparisonTitle}>Delayed Retirement</Text>
-            <SRow label="Date" value={fmt.date(result.delayedRetirement.date)} />
-            <SRow label="Age" value={String(result.delayedRetirement.age)} />
-            <SRow
-              label="Annual Annuity"
-              value={fmt.currency(result.delayedRetirement.annualAnnuity)}
-              bold
-            />
-            <SRow
-              label="Monthly Annuity"
-              value={fmt.currency(result.delayedRetirement.monthlyAnnuity)}
-              bold
-            />
-          </View>
-        </View>
-
-        <View style={styles.summaryBox}>
-          <SRow
-            label="Annual Annuity Difference"
-            value={fmt.currency(
-              result.delayedRetirement.annualAnnuity -
-                result.proposedRetirement.annualAnnuity,
-            )}
-            bold
-          />
-          <SRow
-            label="Monthly Annuity Difference"
-            value={fmt.currency(
-              result.delayedRetirement.monthlyAnnuity -
-                result.proposedRetirement.monthlyAnnuity,
-            )}
-            bold
-          />
-        </View>
-
-        {result.mraPlus10.applies && (
-          <View style={styles.summaryBox}>
-            <Text style={styles.subtitle}>MRA+10 Early Retirement Penalty</Text>
-            <SRow
-              label="Penalty Percentage"
-              value={fmt.pct(result.mraPlus10.penaltyPercent / 100)}
-            />
-            <SRow
-              label="Months Under Age 62"
-              value={String(result.mraPlus10.monthsUnder62)}
-            />
-            <SRow
-              label="Reduced Annual Annuity"
-              value={fmt.currency(result.mraPlus10.reducedAnnuity)}
-              bold
-            />
-          </View>
-        )}
-      </WPage>
-
-      {/* ============================================================
-          R. ANNUITY & SURVIVOR BENEFIT DETAIL
-          ============================================================ */}
-      <WPage sectionTitle="Annuity & Survivor Benefit">
-        <Text style={styles.sectionTitle}>Annuity & Survivor Benefit Detail</Text>
-        <Text style={styles.sectionSubtitle}>
-          Detailed annuity computation and COLA projections
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Annuity Computation</Text>
-          <SRow label="High-3 Average Salary" value={fmt.currency(result.annuity.high3Average)} />
-          <SRow
-            label="Creditable Service"
-            value={fmt.yrsmos(result.annuity.totalServiceYears, result.annuity.totalServiceMonths)}
-          />
-          <SRow label="Sick Leave Credit" value={`${fmt.num(result.annuity.sickLeaveCredit)} years`} />
-          <SRow label="Effective Multiplier" value={fmt.pct(result.annuity.multiplier)} />
-          {result.annuity.csrsComponent != null && (
-            <SRow label="CSRS Component" value={fmt.currency(result.annuity.csrsComponent)} />
-          )}
-          {result.annuity.fersComponent != null && (
-            <SRow label="FERS Component" value={fmt.currency(result.annuity.fersComponent)} />
-          )}
-          <View style={styles.divider} />
-          <SRow label="Gross Annual Annuity" value={fmt.currency(result.annuity.annualAnnuity)} bold />
-          <SRow label="Gross Monthly Annuity" value={fmt.currency(result.annuity.monthlyAnnuity)} bold />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Survivor Benefit</Text>
-          <SRow label="Election" value={result.survivorBenefit.election.replace(/_/g, ' ')} />
-          <SRow label="Annual Cost (reduction)" value={fmt.currency(result.survivorBenefit.annualCost)} />
-          <SRow label="Monthly Cost (reduction)" value={fmt.currency(result.survivorBenefit.monthlyCost)} />
-          <SRow label="Survivor Annual Benefit" value={fmt.currency(result.survivorBenefit.survivorAnnualBenefit)} bold />
-          <SRow label="Survivor Monthly Benefit" value={fmt.currency(result.survivorBenefit.survivorMonthlyBenefit)} bold />
-        </View>
-
-        <Text style={styles.subtitle}>COLA Projections</Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'COLA Rate', width: 1 },
-            { header: 'Annuity After COLA', width: 1.4 },
-          ]}
-          rows={result.colaProjections.slice(0, projectionYears).map((c: ColaProjection) => [
-            String(c.year),
-            fmt.pct(c.colaRate),
-            fmt.currency(c.annuityAfterCola),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          S. FERS SUPPLEMENT / SOCIAL SECURITY
-          ============================================================ */}
-      <WPage sectionTitle="FERS Supplement & Social Security">
-        <Text style={styles.sectionTitle}>
-          FERS Supplement & Social Security Benefits
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Bridge income and lifetime Social Security projections
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>FERS Supplement (Special Retirement Supplement)</Text>
-          <SRow label="Eligible" value={result.fersSupplement.eligible ? 'Yes' : 'No'} />
-          {result.fersSupplement.eligible && (
-            <>
-              <SRow label="Monthly Amount" value={fmt.currency(result.fersSupplement.monthlyAmount)} bold />
-              <SRow label="Annual Amount" value={fmt.currency(result.fersSupplement.annualAmount)} bold />
-              <SRow label="Start Date" value={fmt.date(result.fersSupplement.startDate)} />
-              <SRow label="End Date (age 62)" value={fmt.date(result.fersSupplement.endDate)} />
-            </>
-          )}
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Social Security</Text>
-          <SRow label="Estimated Benefit at Age 62" value={fmt.currency(input.socialSecurity.estimatedBenefitAge62)} />
-          <SRow label="Estimated Benefit at FRA" value={fmt.currency(input.socialSecurity.estimatedBenefitFRA)} />
-          <SRow label="Planned Start Age" value={String(result.socialSecurity.startAge)} />
-          <SRow label="Full Retirement Age" value={String(result.socialSecurity.fullRetirementAge)} />
-          <SRow
-            label="Monthly Benefit at Start Age"
-            value={fmt.currency(result.socialSecurity.monthlyBenefitAtStartAge)}
-            bold
-          />
-          <SRow
-            label="Annual Benefit at Start Age"
-            value={fmt.currency(result.socialSecurity.annualBenefitAtStartAge)}
-            bold
-          />
-        </View>
-
-        <Text style={styles.subtitle}>Social Security Year-by-Year</Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Annual Benefit', width: 1.4 },
-          ]}
-          rows={result.socialSecurity.yearlyProjections
-            .slice(0, projectionYears)
-            .map((y) => [String(y.year), fmt.currency(y.annualBenefit)])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          T. TSP OVERVIEW
-          ============================================================ */}
-      <WPage sectionTitle="TSP Overview">
-        <Text style={styles.sectionTitle}>Thrift Savings Plan Overview</Text>
-        <Text style={styles.sectionSubtitle}>
-          Current allocations and projected retirement balance
-        </Text>
-
-        <View style={styles.comparisonRow}>
-          <View style={styles.highlightBox}>
-            <Text style={styles.highlightLabel}>Total TSP at Retirement</Text>
-            <Text style={styles.highlightValue}>
-              {fmt.currencyWhole(result.tsp.totalAtRetirement)}
-            </Text>
-          </View>
-          <View style={[styles.highlightBox, { backgroundColor: colors.navyLight }]}>
-            <Text style={styles.highlightLabel}>Planned Monthly W/D</Text>
-            <Text style={styles.highlightValue}>
-              {fmt.currency(result.tsp.monthlyWithdrawal)}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.twoCol}>
-          <View style={styles.col}>
-            <View style={styles.summaryBox}>
-              <Text style={styles.subtitle}>Traditional TSP</Text>
-              {input.tsp.traditionalBalances.map((f, i) => (
-                <SRow
-                  key={`trad-${i}`}
-                  label={`${f.fund} Fund`}
-                  value={fmt.currency(f.balance)}
-                />
-              ))}
-              <View style={styles.divider} />
-              <SRow
-                label="Traditional at Retirement"
-                value={fmt.currencyWhole(result.tsp.traditionalAtRetirement)}
-                bold
-              />
-            </View>
-          </View>
-          <View style={styles.col}>
-            <View style={styles.summaryBox}>
-              <Text style={styles.subtitle}>Roth TSP</Text>
-              {input.tsp.rothBalances.map((f, i) => (
-                <SRow
-                  key={`roth-${i}`}
-                  label={`${f.fund} Fund`}
-                  value={fmt.currency(f.balance)}
-                />
-              ))}
-              <View style={styles.divider} />
-              <SRow
-                label="Roth at Retirement"
-                value={fmt.currencyWhole(result.tsp.rothAtRetirement)}
-                bold
-              />
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Contribution Details</Text>
-          <SRow label="Annual Traditional Contribution" value={fmt.currency(input.tsp.annualContributionTraditional)} />
-          <SRow label="Annual Roth Contribution" value={fmt.currency(input.tsp.annualContributionRoth)} />
-          <SRow label="Government Match" value={fmt.pct(input.tsp.governmentMatchPercent / 100)} />
-          <SRow label="Catch-Up Contribution" value={fmt.currency(input.tsp.catchUpContribution)} />
-          <SRow label="Expected Blended Return" value={fmt.pct(input.tsp.expectedReturnRate)} />
-          <SRow label="Withdrawal Method" value={input.tsp.withdrawalMethod.replace(/_/g, ' ')} />
-          {input.tsp.monthlyWithdrawalAmount != null && (
-            <SRow label="Requested Monthly W/D" value={fmt.currency(input.tsp.monthlyWithdrawalAmount)} />
-          )}
-        </View>
-      </WPage>
-
-      {/* ============================================================
-          U. TSP GROWTH PROJECTIONS
-          ============================================================ */}
-      <WPage sectionTitle="TSP Growth Projections">
-        <Text style={styles.sectionTitle}>TSP Growth Projections</Text>
-        <Text style={styles.sectionSubtitle}>
-          Year-by-year combined TSP balance growth
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'Start Bal.', width: 1 },
-            { header: 'Contrib.', width: 0.8 },
-            { header: 'Match', width: 0.7 },
-            { header: 'Growth', width: 0.8 },
-            { header: 'End Bal.', width: 1.1 },
-          ]}
-          rows={tspCombined.map((t: TspProjectionYear) => [
-            String(t.year),
-            String(t.age),
-            fmt.currencyWhole(t.startBalance),
-            fmt.currencyWhole(t.contributions),
-            fmt.currencyWhole(t.governmentMatch),
-            fmt.currencyWhole(t.growth),
-            fmt.currencyWhole(t.endBalance),
-          ])}
-        />
-      </WPage>
-
-      {/* ============================================================
-          V. TSP WITHDRAWAL OPTIONS
-          ============================================================ */}
-      <WPage sectionTitle="TSP Withdrawal Options">
-        <Text style={styles.sectionTitle}>TSP Withdrawal Options</Text>
-        <Text style={styles.sectionSubtitle}>
-          Comparison of withdrawal strategies from your TSP balance
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Your Selected Method</Text>
-          <SRow label="Withdrawal Method" value={input.tsp.withdrawalMethod.replace(/_/g, ' ')} />
-          <SRow label="Planned Withdrawal Age" value={String(input.tsp.plannedWithdrawalAge)} />
-          <SRow label="Annual Withdrawal" value={fmt.currency(result.tsp.annualWithdrawal)} bold />
-          <SRow label="Monthly Withdrawal" value={fmt.currency(result.tsp.monthlyWithdrawal)} bold />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Balance at Retirement</Text>
-          <SRow label="Traditional TSP" value={fmt.currencyWhole(result.tsp.traditionalAtRetirement)} />
-          <SRow label="Roth TSP" value={fmt.currencyWhole(result.tsp.rothAtRetirement)} />
-          <View style={styles.divider} />
-          <SRow label="Total TSP" value={fmt.currencyWhole(result.tsp.totalAtRetirement)} bold />
-        </View>
-
-        <Text style={styles.subtitle}>Withdrawal Method Descriptions</Text>
-        <Text style={styles.text}>
-          <Text style={styles.bold}>Lump Sum:</Text> Withdraw entire balance at once.
-          Subject to federal and state income taxes on traditional balance.
-          Roth earnings are tax-free if qualified.
-        </Text>
-        <Text style={styles.text}>
-          <Text style={styles.bold}>Monthly Payments:</Text> Receive a fixed or
-          calculated monthly amount. Provides regular income stream. Can be
-          changed once per year.
-        </Text>
-        <Text style={styles.text}>
-          <Text style={styles.bold}>Life Annuity:</Text> Purchase a life annuity
-          through the TSP providing guaranteed lifetime income. Irrevocable once
-          purchased.
-        </Text>
-        <Text style={styles.text}>
-          <Text style={styles.bold}>Combination:</Text> Mix of partial lump sum,
-          monthly payments, and/or annuity. Provides flexibility to meet
-          different needs.
-        </Text>
-      </WPage>
-
-      {/* ============================================================
-          W. FEGLI CURRENT COVERAGE & COSTS
-          ============================================================ */}
-      <WPage sectionTitle="FEGLI Coverage">
-        <Text style={styles.sectionTitle}>
-          FEGLI — Current Coverage & Costs
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Federal Employees Group Life Insurance coverage and premium detail
-        </Text>
-
-        <View style={styles.comparisonRow}>
-          <MetricBox
-            label="Total Coverage"
-            value={fmt.currencyWhole(result.fegli.currentCoverage.total)}
-          />
-          <MetricBox
-            label="Monthly Premium"
-            value={fmt.currency(result.fegli.currentMonthlyCost)}
-          />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Coverage Breakdown</Text>
-          <SRow label="Basic Insurance (BIA)" value={fmt.currencyWhole(result.fegli.currentCoverage.basic)} />
-          <SRow
-            label="Option A — Standard ($10,000)"
-            value={input.fegli.optionA ? fmt.currencyWhole(result.fegli.currentCoverage.optionA) : 'Not Elected'}
-          />
-          <SRow
-            label={`Option B — ${input.fegli.optionBMultiple}x Salary`}
-            value={input.fegli.optionB ? fmt.currencyWhole(result.fegli.currentCoverage.optionB) : 'Not Elected'}
-          />
-          <SRow
-            label={`Option C — ${input.fegli.optionCMultiple}x Family`}
-            value={input.fegli.optionC ? fmt.currencyWhole(result.fegli.currentCoverage.optionC) : 'Not Elected'}
-          />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Election Details</Text>
-          <SRow label="Basic Coverage" value={input.fegli.basicCoverage ? 'Yes' : 'No'} />
-          <SRow label="Option A" value={input.fegli.optionA ? 'Yes' : 'No'} />
-          <SRow label="Option B Multiple" value={`${input.fegli.optionBMultiple}x`} />
-          <SRow label="Option C Multiple" value={`${input.fegli.optionCMultiple}x`} />
-          <SRow label="Post-Retirement Reduction" value={input.fegli.postRetirementReduction.replace(/_/g, ' ')} />
-        </View>
-
-        <Text style={styles.disclaimer}>
-          Note: Basic insurance coverage reduces by 75% after age 65 unless you
-          elect a different reduction schedule. Option B coverage reduces by 2%
-          per month starting at age 65 unless continued at your own cost.
-          Premiums shown are estimates and subject to change.
-        </Text>
-      </WPage>
-
-      {/* ============================================================
-          X. FEGLI COST OVER TIME
-          ============================================================ */}
-      <WPage sectionTitle="FEGLI Cost Projections">
-        <Text style={styles.sectionTitle}>FEGLI Cost Over Time</Text>
-        <Text style={styles.sectionSubtitle}>
-          Year-by-year FEGLI premium and coverage projections
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.35 },
-            { header: 'Basic', width: 0.7 },
-            { header: 'Opt A', width: 0.7 },
-            { header: 'Opt B', width: 0.7 },
-            { header: 'Opt C', width: 0.7 },
-            { header: 'Total Cost', width: 0.9 },
-            { header: 'Total Coverage', width: 1 },
-          ]}
-          rows={result.fegli.costProjections.slice(0, projectionYears).map(
-            (f: FegliCostYear) => [
-              String(f.year),
-              String(f.age),
-              fmt.currency(f.basicCost),
-              fmt.currency(f.optionACost),
-              fmt.currency(f.optionBCost),
-              fmt.currency(f.optionCCost),
-              fmt.currency(f.totalCost),
-              fmt.currencyWhole(
-                f.basicCoverage + f.optionACoverage + f.optionBCoverage + f.optionCCoverage,
-              ),
-            ],
-          )}
-        />
-      </WPage>
-
-      {/* ============================================================
-          Y. FEHB HEALTH BENEFITS
-          ============================================================ */}
-      <WPage sectionTitle="FEHB Health Benefits">
-        <Text style={styles.sectionTitle}>
-          FEHB — Health Benefits Overview
-        </Text>
-        <Text style={styles.sectionSubtitle}>
-          Federal Employees Health Benefits current plan details
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Current Plan</Text>
-          <SRow label="Plan Name" value={input.fehb.currentPlanName} />
-          <SRow label="Enrollment Type" value={input.fehb.enrollment.replace(/_/g, ' ')} />
-          <SRow label="Bi-Weekly Premium" value={fmt.currency(input.fehb.biweeklyPremium)} />
-          <SRow label="Monthly Premium (Current)" value={fmt.currency(result.fehb.currentMonthlyPremium)} />
-          <SRow
-            label="Retirement Monthly Premium"
-            value={fmt.currency(result.fehb.retirementMonthlyPremium)}
-          />
-          <SRow label="Assumed Annual Increase" value={fmt.pct(input.fehb.premiumIncreaseRate)} />
-        </View>
-
-        <Text style={styles.text}>
-          As a federal retiree, you continue FEHB coverage with the government
-          paying the same share as active employees. You must have been enrolled
-          (or covered as a family member) for the 5 consecutive years of service
-          immediately before retirement to continue FEHB into retirement.
-        </Text>
-      </WPage>
-
-      {/* ============================================================
-          Z. FEHB COST PROJECTIONS
-          ============================================================ */}
-      <WPage sectionTitle="FEHB Cost Projections">
-        <Text style={styles.sectionTitle}>FEHB Cost Projections</Text>
-        <Text style={styles.sectionSubtitle}>
-          Year-by-year FEHB premium projections
-        </Text>
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.5, align: 'left' },
-            { header: 'Age', width: 0.4 },
-            { header: 'Annual Prem.', width: 1 },
-            { header: 'Monthly Prem.', width: 1 },
-            { header: 'Gov Share', width: 1 },
-            { header: 'Your Share', width: 1 },
-          ]}
-          rows={result.fehb.projections.slice(0, projectionYears).map(
-            (f: FehbProjectionYear) => [
-              String(f.year),
-              String(f.age),
-              fmt.currency(f.annualPremium),
-              fmt.currency(f.monthlyPremium),
-              fmt.currency(f.governmentShare),
-              fmt.currency(f.employeeShare),
-            ],
-          )}
-        />
-      </WPage>
-
-      {/* ============================================================
-          AA. LONG TERM CARE INSURANCE
-          ============================================================ */}
-      <WPage sectionTitle="Long Term Care Insurance">
-        <Text style={styles.sectionTitle}>Long Term Care Insurance</Text>
-        <Text style={styles.sectionSubtitle}>
-          Federal Long Term Care Insurance Program (FLTCIP)
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <SRow label="Enrolled" value={input.ltc.enrolled ? 'Yes' : 'No'} />
-          {input.ltc.enrolled && (
-            <>
-              <SRow label="Monthly Premium" value={fmt.currency(input.ltc.currentPremium)} />
-              <SRow label="Annual Premium" value={fmt.currency(input.ltc.currentPremium * 12)} />
-              <SRow label="Daily Benefit Amount" value={fmt.currency(input.ltc.dailyBenefitAmount)} />
-              <SRow label="Benefit Period" value={`${input.ltc.benefitPeriodYears} years`} />
-              <SRow
-                label="Maximum Lifetime Benefit"
-                value={fmt.currencyWhole(
-                  input.ltc.dailyBenefitAmount * 365 * input.ltc.benefitPeriodYears,
-                )}
-              />
-            </>
-          )}
-        </View>
-
-        {input.ltc.enrolled && (
-          <Text style={styles.text}>
-            Long-term care insurance helps cover costs of care when you can no
-            longer perform everyday activities on your own. Benefits may be used
-            for nursing homes, assisted living, home health aides, and adult day
-            care. Premiums are subject to increase by the insurance carrier.
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 50 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 20 }}>
+            Federal Employee Benefits - Summary
           </Text>
-        )}
-
-        {!input.ltc.enrolled && (
-          <Text style={styles.text}>
-            You have not elected Long Term Care Insurance. Consider evaluating
-            coverage options, as long-term care costs can significantly impact
-            retirement savings. The average annual cost of a private room in a
-            nursing facility exceeds $100,000 in many areas.
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
+            (All figures shown are hypothetical and based on information provided by you. Any change to{'\n'}
+            your benefit elections, salary or other information provided by you could alter these figures.)
           </Text>
-        )}
-      </WPage>
+
+          {/* Personal */}
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 4 }}>Personal</Text>
+          <SRow label="Name:" value={input.personal.fullName} />
+          {input.personal.address ? (
+            <SRow label="Address:" value={input.personal.address} />
+          ) : null}
+          <SRow label="Date Of Birth:" value={fmt.date(dob)} />
+          <SRow label="Age:" value={String(currentAge)} />
+
+          {/* Employment */}
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Employment</Text>
+          <SRow label="Service Computation Date:" value={fmt.date(input.employment.serviceComputationDate)} />
+          <SRow label="Annual Salary:" value={fmt.currency(salaryNow)} />
+          <SRow label="Hourly Salary:" value={fmt.currency(hourlyNow)} />
+          <SRow label="Annual Salary Increase:" value={`${fmt.pct(salaryRate)} (Estimated)`} />
+          <SRow label="Creditable Service:" value={`${civilianYears} Years ${civilianMonths} Month${civilianMonths === 1 ? '' : 's'}`} />
+          <SRow label="Sick Leave:" value={`${sickLeaveYears} Year${sickLeaveYears === 1 ? '' : 's'} ${sickLeaveMonthsExt} Month${sickLeaveMonthsExt === 1 ? '' : 's'}`} />
+
+          {/* Retirement */}
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Retirement</Text>
+          <SRow label="Retirement System:" value={input.employment.retirementSystem} />
+          <SRow label="Employee Type:" value={input.employment.employeeType} />
+          <SRow label="Retirement Type:" value={input.employment.employeeType === 'REGULAR' ? 'REGULAR' : input.employment.employeeType} />
+          <SRow label="Planned Retirement Date:" value={fmt.date(retDate)} />
+          <SRow label="Annual Salary:" value={fmt.currencyWhole(salaryAtRet)} />
+          <SRow label="Hourly Salary:" value={fmt.currencyWhole(hourlyAtRet)} />
+          <SRow label="High 3 Average Salary:" value={fmt.currencyWhole(high3)} />
+          <SRow label="Annual COLA:" value={fmt.pctWhole(cola)} />
+          {/* Service at retirement = civilian only (sick leave is shown separately) */}
+          <SRow
+            label="Creditable Service:"
+            value={`${civilianYears} Years ${civilianMonths} Month${civilianMonths === 1 ? '' : 's'}`}
+          />
+          <SRow
+            label="Sick Leave:"
+            value={`${sickLeaveYears > 0 ? `${sickLeaveYears} Year${sickLeaveYears === 1 ? '' : 's'} ` : ''}${sickLeaveMonthsExt} Month${sickLeaveMonthsExt === 1 ? '' : 's'}`}
+          />
+          <SRow label="Age:" value={String(ageAtRetirement)} />
+          <SRow label="Retirement Eligibility:" value="Service and Age Requirements Met" />
+
+          {/* Monthly Annuity */}
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 12 }}>
+            Monthly Retirement Annuity - {input.employment.retirementSystem} Survivor with a {survivorElection === '50_PERCENT' ? '50%' : survivorElection === '25_PERCENT' ? '25%' : '0%'} Annuity
+          </Text>
+          <SRow label="Annuity Without Survivor*:" value={fmt.currencyWhole(monthlyNoSurv)} />
+          <SRow label="Annuity With Survivor*:" value={fmt.currencyWhole(monthlyWithSurv)} />
+          <SRow label="Survivor's Annuity:" value={fmt.currencyWhole(survivorMonthlyBenefit)} />
+          <SRow label="Cost of Survivor's Annuity*:" value={fmt.currencyWhole(monthlySurvivorCost)} />
+        </View>
+      </ReportPage>
 
       {/* ============================================================
-          AB. INPUT DATA SUMMARY
+          PAGE 4 — PROPOSED & DELAYED RETIREMENT
           ============================================================ */}
-      <WPage sectionTitle="Input Data Summary">
-        <Text style={styles.sectionTitle}>Input Data Summary</Text>
-        <Text style={styles.sectionSubtitle}>
-          All data used to generate this report
-        </Text>
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 30 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Proposed &amp; Delayed Retirement
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
 
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Personal Information</Text>
-          <SRow label="Full Name" value={input.personal.fullName} />
-          <SRow label="Date of Birth" value={fmt.date(input.personal.dateOfBirth)} />
-          <SRow label="Address" value={input.personal.address} />
-          <SRow label="Marital Status" value={input.personal.maritalStatus} />
-          {input.personal.spouseDateOfBirth && (
-            <SRow label="Spouse DOB" value={fmt.date(input.personal.spouseDateOfBirth)} />
-          )}
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Employment</Text>
-          <SRow label="Retirement System" value={input.employment.retirementSystem.replace(/_/g, ' ')} />
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
+          <SRow label="Retirement System" value={input.employment.retirementSystem} />
           <SRow label="Employee Type" value={input.employment.employeeType} />
-          <SRow label="SCD" value={fmt.date(input.employment.serviceComputationDate)} />
-          <SRow label="Current Annual Salary" value={fmt.currency(input.employment.currentAnnualSalary)} />
-          <SRow label="Annual Salary Increase" value={fmt.pct(input.employment.annualSalaryIncreaseRate)} />
-          <SRow
-            label="Creditable Service"
-            value={fmt.yrsmos(input.employment.creditableServiceYears, input.employment.creditableServiceMonths)}
-          />
-          <SRow label="Sick Leave Hours" value={String(input.employment.sickLeaveHours)} />
-          <SRow label="Planned Retirement" value={fmt.date(input.employment.plannedRetirementDate)} />
-          {input.employment.csrsServiceYears != null && (
-            <SRow
-              label="CSRS Service"
-              value={fmt.yrsmos(input.employment.csrsServiceYears, input.employment.csrsServiceMonths ?? 0)}
-            />
-          )}
-          {input.employment.fersServiceYears != null && (
-            <SRow
-              label="FERS Service"
-              value={fmt.yrsmos(input.employment.fersServiceYears, input.employment.fersServiceMonths ?? 0)}
-            />
-          )}
-        </View>
+          <SRow label="Retirement Type" value="REGULAR" />
 
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Tax Information</Text>
-          <SRow label="Filing Status" value={input.tax.filingStatus.replace(/_/g, ' ')} />
-          <SRow label="Federal Tax Rate" value={fmt.pct(input.tax.federalTaxRate)} />
-          <SRow label="State of Residence" value={input.tax.stateOfResidence} />
-          <SRow label="State Tax Rate" value={fmt.pct(input.tax.stateTaxRate)} />
-        </View>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
+          <SRow label="Estimated High 3 Average At Retirement" value={fmt.currency(high3)} />
+          <SRow label="Estimated High 3 Increase / Year" value={fmt.pctWhole(salaryRate)} />
+          <SRow label="Length of Service at Retirement" value={String(civilianYears)} />
+          <SRow label="Months of Service at Retirement" value={String(civilianMonths)} />
+          <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
+          <SRow label="Total Hours of Unused Sick Leave" value={String(input.employment.sickLeaveHours)} />
+          <SRow label="COLA (in Retirement)" value={fmt.pctWhole(cola)} />
+          <SRow label={`${input.employment.retirementSystem} Survivor`}
+                value={survivorElection === '50_PERCENT' ? '50% Annuity' : survivorElection === '25_PERCENT' ? '25% Annuity' : 'None'} />
 
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Other Income Sources (Annual)</Text>
-          <SRow label="Other Pensions" value={fmt.currency(input.otherIncome.otherPensions)} />
-          <SRow label="Spouse Income" value={fmt.currency(input.otherIncome.spouseIncome)} />
-          <SRow label="Rental Income" value={fmt.currency(input.otherIncome.rentalIncome)} />
-          <SRow label="Investment Income" value={fmt.currency(input.otherIncome.investmentIncome)} />
-          <SRow label="Other Taxable" value={fmt.currency(input.otherIncome.otherTaxableIncome)} />
-          <SRow label="Other Non-Taxable" value={fmt.currency(input.otherIncome.otherNonTaxableIncome)} />
-        </View>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Monthly Expenses</Text>
-          <SRow label="Housing" value={fmt.currency(input.expenses.housing)} />
-          <SRow label="Utilities" value={fmt.currency(input.expenses.utilities)} />
-          <SRow label="Transportation" value={fmt.currency(input.expenses.transportation)} />
-          <SRow label="Food" value={fmt.currency(input.expenses.food)} />
-          <SRow label="Healthcare (OOP)" value={fmt.currency(input.expenses.healthcareOutOfPocket)} />
-          <SRow label="Insurance" value={fmt.currency(input.expenses.insurance)} />
-          <SRow label="Debt Payments" value={fmt.currency(input.expenses.debtPayments)} />
-          <SRow label="Entertainment" value={fmt.currency(input.expenses.entertainment)} />
-          <SRow label="Travel" value={fmt.currency(input.expenses.travel)} />
-          <SRow label="Charitable Giving" value={fmt.currency(input.expenses.charitableGiving)} />
-          <SRow label="Other" value={fmt.currency(input.expenses.other)} />
-          <View style={styles.divider} />
-          <SRow
-            label="Total Monthly Expenses"
-            value={fmt.currency(
-              input.expenses.housing +
-              input.expenses.utilities +
-              input.expenses.transportation +
-              input.expenses.food +
-              input.expenses.healthcareOutOfPocket +
-              input.expenses.insurance +
-              input.expenses.debtPayments +
-              input.expenses.entertainment +
-              input.expenses.travel +
-              input.expenses.charitableGiving +
-              input.expenses.other,
-            )}
-            bold
-          />
-        </View>
-
-        {input.military.hasMilitaryService && (
-          <View style={styles.summaryBox}>
-            <Text style={styles.subtitle}>Military Service</Text>
-            <SRow label="Branch" value={input.military.branch} />
-            <SRow label="Active Duty Start" value={fmt.date(input.military.activeDutyStartDate)} />
-            <SRow label="Active Duty End" value={fmt.date(input.military.activeDutyEndDate)} />
-            <SRow label="Deposit Paid" value={input.military.depositPaid ? 'Yes' : 'No'} />
-            {!input.military.depositPaid && (
-              <SRow label="Deposit Owed" value={fmt.currency(input.military.depositAmountOwed)} />
-            )}
-          </View>
-        )}
-
-        {(input.deposits.hasNonDeductionService || input.deposits.hasRefundedService) && (
-          <View style={styles.summaryBox}>
-            <Text style={styles.subtitle}>Service Credit Deposits</Text>
-            {input.deposits.hasNonDeductionService && (
-              <SRow label="Non-Deduction Service Deposit" value={fmt.currency(input.deposits.depositOwed)} />
-            )}
-            {input.deposits.hasRefundedService && (
-              <SRow label="Refunded Service Re-Deposit" value={fmt.currency(input.deposits.reDepositOwed)} />
-            )}
-          </View>
-        )}
-      </WPage>
-
-      {/* ============================================================
-          AC. RETIREMENT ELIGIBILITY
-          ============================================================ */}
-      <WPage sectionTitle="Retirement Eligibility">
-        <Text style={styles.sectionTitle}>Retirement Eligibility</Text>
-        <Text style={styles.sectionSubtitle}>
-          All eligible retirement dates based on your service and age
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <SRow
-            label="Earliest Eligible Date"
-            value={fmt.date(result.eligibility.earliestEligibleDate)}
-            bold
-          />
-          <SRow
-            label="Minimum Retirement Age (MRA)"
-            value={String(result.eligibility.mra)}
-          />
-        </View>
-
-        <DataTable
-          columns={[
-            { header: 'Type', width: 1.5, align: 'left' },
-            { header: 'Date', width: 0.8 },
-            { header: 'Age', width: 0.5 },
-            { header: 'Service Yrs', width: 0.7 },
-            { header: 'Eligible', width: 0.6 },
-          ]}
-          rows={result.eligibility.eligibilityDates.map((e: EligibilityDate) => [
-            e.description,
-            fmt.date(e.date),
-            String(e.age),
-            String(e.serviceYears),
-            e.eligible ? 'YES' : 'No',
-          ])}
-        />
-
-        {result.mraPlus10.applies && (
-          <View style={[styles.summaryBox, { marginTop: 12 }]}>
-            <Text style={styles.subtitle}>MRA+10 Early Retirement</Text>
-            <Text style={styles.text}>
-              You may be eligible for an MRA+10 early retirement. This allows
-              retirement at your Minimum Retirement Age with at least 10 years
-              of service, but with a reduced annuity.
-            </Text>
-            <SRow
-              label="Penalty"
-              value={`${fmt.num(result.mraPlus10.penaltyPercent)}% (5% per year under 62)`}
-            />
-            <SRow label="Months Under 62" value={String(result.mraPlus10.monthsUnder62)} />
-            <SRow
-              label="Reduced Annual Annuity"
-              value={fmt.currency(result.mraPlus10.reducedAnnuity)}
-              bold
-            />
-          </View>
-        )}
-      </WPage>
-
-      {/* ============================================================
-          AD. CREDITABLE SERVICE DETAIL
-          ============================================================ */}
-      <WPage sectionTitle="Creditable Service Detail">
-        <Text style={styles.sectionTitle}>Creditable Service Detail</Text>
-        <Text style={styles.sectionSubtitle}>
-          Breakdown of your total creditable civilian and military service
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Service Computation</Text>
-          <SRow label="Service Computation Date" value={fmt.date(input.employment.serviceComputationDate)} />
-          <SRow
-            label="Civilian Service"
-            value={fmt.yrsmos(input.employment.creditableServiceYears, input.employment.creditableServiceMonths)}
-          />
-          <SRow
-            label="Sick Leave Credit"
-            value={`${fmt.num(result.annuity.sickLeaveCredit)} years (${input.employment.sickLeaveHours} hours)`}
-          />
-          {input.employment.retirementSystem === 'FERS_TRANSFER' && (
-            <>
-              <SRow
-                label="CSRS Service"
-                value={fmt.yrsmos(input.employment.csrsServiceYears ?? 0, input.employment.csrsServiceMonths ?? 0)}
-              />
-              <SRow
-                label="FERS Service"
-                value={fmt.yrsmos(input.employment.fersServiceYears ?? 0, input.employment.fersServiceMonths ?? 0)}
-              />
-            </>
-          )}
-          {input.military.hasMilitaryService && (
-            <SRow
-              label="Military Service"
-              value={`${input.military.branch} (${fmt.date(input.military.activeDutyStartDate)} - ${fmt.date(input.military.activeDutyEndDate)})`}
-            />
-          )}
-          <View style={styles.divider} />
-          <SRow
-            label="Total Creditable Service"
-            value={fmt.yrsmos(result.annuity.totalServiceYears, result.annuity.totalServiceMonths)}
-            bold
-          />
-        </View>
-
-        {(input.deposits.hasNonDeductionService || input.deposits.hasRefundedService) && (
-          <View style={styles.summaryBox}>
-            <Text style={styles.subtitle}>Deposits & Re-Deposits</Text>
-            {input.deposits.hasNonDeductionService && (
-              <>
-                <SRow label="Non-Deduction Service" value="Yes" />
-                <SRow label="Deposit Owed" value={fmt.currency(input.deposits.depositOwed)} />
-              </>
-            )}
-            {input.deposits.hasRefundedService && (
-              <>
-                <SRow label="Refunded Service" value="Yes" />
-                <SRow label="Re-Deposit Owed" value={fmt.currency(input.deposits.reDepositOwed)} />
-              </>
-            )}
-            <Text style={[styles.textSmall, styles.italic, { marginTop: 6 }]}>
-              Unpaid deposits may reduce your annuity or cause service to not be
-              credited. Contact your human resources office for payment options.
-            </Text>
-          </View>
-        )}
-
-        {input.military.hasMilitaryService && !input.military.depositPaid && (
-          <View style={styles.summaryBox}>
-            <Text style={styles.subtitle}>Military Service Deposit</Text>
-            <Text style={styles.text}>
-              You have indicated military service with an unpaid deposit of{' '}
-              {fmt.currency(input.military.depositAmountOwed)}. If this deposit
-              is not paid, your military service time may not be credited toward
-              your civilian retirement annuity, and there may be an impact on
-              Social Security benefits.
-            </Text>
-          </View>
-        )}
-      </WPage>
-
-      {/* ============================================================
-          AE. HIGH-3 AVERAGE SALARY DETAIL
-          ============================================================ */}
-      <WPage sectionTitle="High-3 Average Salary">
-        <Text style={styles.sectionTitle}>High-3 Average Salary Detail</Text>
-        <Text style={styles.sectionSubtitle}>
-          Your highest three consecutive years of basic pay
-        </Text>
-
-        <MetricBox label="High-3 Average" value={fmt.currency(result.annuity.high3Average)} />
-
-        <DataTable
-          columns={[
-            { header: 'Year', width: 0.6, align: 'left' },
-            { header: 'Annual Salary', width: 1.4 },
-            { header: 'In High-3', width: 0.8 },
-          ]}
-          rows={result.high3Detail.map((h: High3Detail) => [
-            String(h.year),
-            fmt.currency(h.salary),
-            h.inHigh3 ? 'YES' : '',
-          ])}
-        />
-
-        <Text style={styles.text}>
-          The High-3 average salary is calculated using the highest three
-          consecutive years of basic pay. This typically includes your base pay
-          and locality pay, but does not include overtime, bonuses, or other
-          premium pay. The years marked &quot;YES&quot; above are the three used in
-          your computation.
-        </Text>
-
-        <View style={styles.summaryBox}>
-          <Text style={styles.subtitle}>Annuity Formula</Text>
-          <Text style={styles.text}>
-            {input.employment.retirementSystem === 'FERS' || input.employment.retirementSystem === 'FERS_TRANSFER'
-              ? 'FERS: 1% (or 1.1% if age 62+ with 20+ years) x High-3 x Years of Service'
-              : 'CSRS: 1.5% x first 5 years + 1.75% x next 5 years + 2% x remaining years, applied to High-3'}
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 10 }}>
+            Proposed and Delayed Retirement Data
           </Text>
-          <SRow label="High-3 Average" value={fmt.currency(result.annuity.high3Average)} />
-          <SRow
-            label="Total Service (incl. sick leave)"
-            value={`${fmt.num(result.annuity.totalServiceYears + result.annuity.totalServiceMonths / 12 + result.annuity.sickLeaveCredit)} years`}
-          />
-          <SRow label="Multiplier" value={fmt.pct(result.annuity.multiplier)} />
-          <View style={styles.divider} />
-          <SRow label="Computed Annual Annuity" value={fmt.currency(result.annuity.annualAnnuity)} bold />
+
+          {/* Compact wide table — use small font + many cols */}
+          <View style={{ flexDirection: 'row', marginTop: 4 }}>
+            <View style={{ width: '20%' }}>
+              {[
+                'Age In Years', 'Service Years', 'Service Months', 'Sick Leave Months',
+                'Estimated High 3 Average ($)', 'Change in High 3 Average ($)',
+                'Annual ANNUITY (Before Penalties) ($)',
+                'Annual Annuity No Survivor ($)', 'Monthly Annuity No Survivor ($)',
+                'Annual Annuity With Survivor ($)', 'Monthly Annuity With Survivor ($)',
+                'Annual Survivor Annuity ($)', 'Monthly Survivor Annuity ($)',
+                'Annual Cost of Survivor Annuity ($)', 'Monthly Cost of Survivor Annuity ($)',
+              ].map((l, i) => (
+                <Text key={i} style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>
+                  {l}
+                </Text>
+              ))}
+            </View>
+            {delayedRows.map((r, idx) => (
+              <View key={idx} style={{ flex: 1, alignItems: 'center', backgroundColor: idx === 0 ? '#fff' : (idx % 2 ? '#f7f7f7' : '#fff') }}>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.age}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.civYears}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.civMonths}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.slM}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.projHigh3).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.high3Change ? Math.round(r.high3Change).toLocaleString() : ''}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annWith).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moWith).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annSurvBen).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moSurvBen).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annCostSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moCostSurv).toLocaleString()}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={{ fontSize: 7, marginTop: 4, color: '#666' }}>
+            Proposed Retirement = Age {ageAtRetirement}; remaining columns = delayed retirement at each subsequent age.
+          </Text>
         </View>
-      </WPage>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 5 — RETIREMENT ANNUITY & SURVIVING SPOUSE BENEFIT
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 50 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Retirement Annuity and Surviving Spouse Benefit
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+          <Text style={{ fontSize: 9, marginBottom: 6 }}>
+            <Text style={{ textDecoration: 'underline' }}>Benefits Data</Text>
+          </Text>
+          <Text style={{ fontSize: 9, marginBottom: 10 }}>
+            Calculations based on a COLA (In Retirement) of {fmt.pctWhole(cola)} and a {survivorElection === '50_PERCENT' ? '50%' : survivorElection === '25_PERCENT' ? '25%' : '0%'} Survivor Annuity.
+          </Text>
+          <DataTable
+            columns={[
+              { header: 'Year', width: '7%' },
+              { header: 'Age', width: '7%' },
+              { header: 'Monthly Annuity No Survivor [A]', width: '15%' },
+              { header: 'Monthly Annuity With Survivor [B]', width: '15%' },
+              { header: "Survivor's Monthly Annuity", width: '14%' },
+              { header: 'Monthly Difference [A] - [B] *', width: '14%' },
+              { header: 'Annual Difference [A] - [B]', width: '14%' },
+              { header: 'Accumulated Annual Difference [A] - [B]', width: '14%' },
+            ]}
+            rows={survivorTable}
+          />
+          <Text style={{ fontSize: 8, marginTop: 8, color: '#444' }}>
+            * Monthly Annuity No Survivor Minus Monthly Annuity With Survivor
+          </Text>
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 6 — TSP DISCLAIMER
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 40 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 30, marginBottom: 18 }}>
+            TSP Disclaimer
+          </Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+            <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This calculator is provided for informational purposes only</Text>. It is not intended to provide retirement income advice, be used as an investment advisory tool, as a guarantee of monthly payment amounts, as a guarantee of a final account balance or as a guarantee of the duration of the elected monthly payment amount. The monthly income illustrated is based on a gross distribution without consideration for income tax.
+          </Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+            <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This report illustrates hypothetical balances at retirement</Text> for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS) Thrift Savings Plan (TSP). Estimates are based on assumptions, which may affect the results and may differ from actual experience. Since future rates of return and performance cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report and it is recommended that you consult with your personnel office, the Office of Personnel Management (OPM) or Retirement Information Office 1888-767-6738. {brand} cannot provide retirement analysis and decision information to you. No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis and you may not rely upon such information or advice. The analysis is provided 'AS IS' without warranties or representations of any kind and disclaim all express, implied and statutory warranties of any kind to the user and any third party, (including, but not limited to, the implied warranties of accuracy, timeliness, completeness, merchantability, noninfringement and fitness for a particular purpose).
+          </Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+            Neither {brand} nor anyone else who has been involved in the creation, production or delivery of this analysis shall be liable for any direct, indirect, consequential, or incidental damages (including, but not limited to, damages for lost profits or lost opportunity, loss of business or personal profits, business or personal interruption, loss of business or personal information, special, or punitive damages whatsoever) arising from the use of (or inability to use) this analysis.
+          </Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, fontStyle: 'italic', textDecoration: 'underline', textAlign: 'justify' }}>
+            All figures shown are hypothetical and based on information provided by you. Any change to your benefit elections, salary or other information provided by you could alter these figures.
+          </Text>
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 7 — TSP TRADITIONAL NARRATIVE
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 40 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Thrift Savings Plan
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 16 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Traditional Savings</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+            There are six separate funds (G, F, C, S, I, and L) in which to accumulate savings. At this time you have accumulated{' '}
+            {input.tsp.traditionalBalances.map((b) =>
+              `${fmt.currency(b.balance)} in the ${b.fund} Fund`
+            ).join(', ')} for a total of {fmt.currency(input.tsp.traditionalBalances.reduce((a, b) => a + b.balance, 0))}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+            The following rates were selected by you for calculating future earnings:{' '}
+            {input.tsp.traditionalBalances
+              .filter(b => b.fund !== 'L')
+              .map((b) => `${b.fund} Fund ${fmt.pct(b.returnRate)}`).join(', ')}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Traditional Contributions</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionTraditional)} from your salary and an additional {fmt.currency(input.tsp.catchUpContribution)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionTraditional + input.tsp.catchUpContribution)}.
+          </Text>
+          <Text style={{ fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>
+            In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            You elected to start withdrawing funds at the age of {input.tsp.plannedWithdrawalAge} years and 0 months. The estimated savings at that age is {fmt.currency(result.tsp.totalAtRetirement)}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            {input.tsp.withdrawalMethod === 'MONTHLY_PAYMENTS' ? 'Monthly Payments' : input.tsp.withdrawalMethod}
+          </Text>
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 8 — TSP CONTRIBUTIONS AND HYPOTHETICAL SAVINGS
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 30 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Thrift Savings Plan - Contributions and Hypothetical Savings
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 6 }}>
+            Summary of Annual Contributions and Savings: {tspTrad[0]?.year} to {tspTrad[tspTrad.length - 1]?.year}
+          </Text>
+
+          <DataTable
+            columns={[
+              { header: 'End Of Year', width: '11%' },
+              { header: 'Age', width: '7%' },
+              { header: 'Salary', width: '12%' },
+              { header: 'Your Contrib', width: '12%' },
+              { header: 'Gov Contrib', width: '12%' },
+              { header: 'Total Contrib', width: '12%' },
+              { header: 'Total Estimated Savings', width: '17%' },
+            ]}
+            rows={tspTrad.map((t) => {
+              const yearSalary = salaryNow * Math.pow(1 + salaryRate, t.year - new Date().getFullYear());
+              return [
+                `12-${String(t.year).slice(2)}`,
+                t.age,
+                fmt.currencyWhole(yearSalary),
+                fmt.currencyWhole(t.contributions),
+                fmt.currencyWhole(t.governmentMatch),
+                fmt.currencyWhole(t.contributions + t.governmentMatch),
+                fmt.currencyWhole(t.endBalance),
+              ];
+            })}
+          />
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 9 — TSP ROTH NARRATIVE
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 40 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Thrift Savings Plan
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 16 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Roth Savings</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+            There are six separate funds (G, F, C, S, I, and L) in which to accumulate savings. At this time you have accumulated{' '}
+            {input.tsp.rothBalances.map((b) =>
+              `${fmt.currency(b.balance)} in the ${b.fund} Fund`
+            ).join(', ')} for a total of {fmt.currency(input.tsp.rothBalances.reduce((a, b) => a + b.balance, 0))}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+            The following rates were selected by you for calculating future earnings:{' '}
+            {input.tsp.rothBalances
+              .filter(b => b.fund !== 'L')
+              .map((b) => `${b.fund} Fund ${fmt.pct(b.returnRate)}`).join(', ')}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Roth Contributions</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionRoth)} from your salary and an additional {fmt.currency(0)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionRoth)}.
+          </Text>
+          <Text style={{ fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>
+            In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            You elected to start withdrawing funds at the age of {input.tsp.plannedWithdrawalAge} years and 0 months. The estimated savings at that age is {fmt.currency(result.tsp.rothAtRetirement)}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
+          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+            {input.tsp.withdrawalMethod === 'MONTHLY_PAYMENTS' ? 'Monthly Payments' : input.tsp.withdrawalMethod}
+          </Text>
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 10 — ROTH CONTRIBUTIONS YEARLY TABLE
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 30 }}>
+          <Text style={{ fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Thrift Savings Plan - ROTH Contributions and Hypothetical Savings
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+
+          {input.tsp.annualContributionRoth > 0 || input.tsp.rothBalances.some(b => b.balance > 0) ? (
+            <DataTable
+              columns={[
+                { header: 'End Of Year', width: '11%' },
+                { header: 'Age', width: '7%' },
+                { header: 'Salary', width: '12%' },
+                { header: 'Your Contrib', width: '12%' },
+                { header: 'Total Contrib', width: '12%' },
+                { header: 'Total Estimated Savings', width: '20%' },
+              ]}
+              rows={result.tsp.rothProjections.slice(0, 5).map((t) => {
+                const yearSalary = salaryNow * Math.pow(1 + salaryRate, t.year - new Date().getFullYear());
+                return [
+                  `12-${String(t.year).slice(2)}`,
+                  t.age,
+                  fmt.currencyWhole(yearSalary),
+                  fmt.currencyWhole(t.contributions),
+                  fmt.currencyWhole(t.contributions),
+                  fmt.currencyWhole(t.endBalance),
+                ];
+              })}
+            />
+          ) : (
+            <Text style={{ fontSize: 10, marginTop: 30, fontStyle: 'italic' }}>
+              No Roth TSP balance or contributions on record.
+            </Text>
+          )}
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 11 — FEGLI
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 25 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 14 }}>
+            Federal Employees Group Life Insurance
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Summary as of {format(new Date(), 'MMM-dd-yyyy')}</Text>
+          <Text style={{ fontSize: 9, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+            At your current age of {currentAge}, your annual salary is {fmt.currency(salaryNow)}, and you expect annual salary increases of {fmt.pct(salaryRate)}. Your life insurance coverage includes:
+            {input.fegli.basicCoverage ? ' Basic (equal to your rounded annual salary plus $2000).' : ''}
+            {input.fegli.optionA ? ' Option A.' : ''}
+            {input.fegli.optionB ? ` Option B (${input.fegli.optionBMultiple}×).` : ''}
+            {input.fegli.optionC ? ` Option C (${input.fegli.optionCMultiple}×).` : ''}
+            {' '}You plan to retire on {fmt.date(retDate)} at the age of {ageAtRetirement}.
+          </Text>
+
+          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>FEGLI Premiums and Coverage</Text>
+
+          <DataTable
+            columns={[
+              { header: 'Age', width: '6%' },
+              { header: 'Annual Salary', width: '11%' },
+              { header: 'Biweekly Premium', width: '10%' },
+              { header: 'Monthly Premium', width: '10%' },
+              { header: 'Annual Premium', width: '10%' },
+              { header: 'Accumulated Cost', width: '10%' },
+              { header: 'Basic', width: '10%' },
+              { header: 'Option A', width: '8%' },
+              { header: 'Option B', width: '8%' },
+              { header: 'Option C', width: '8%' },
+              { header: 'Total Coverage', width: '11%' },
+            ]}
+            rows={fegliRows}
+          />
+
+          <View style={{ marginTop: 8, padding: 4, borderWidth: 0.5, borderColor: '#000' }}>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ flex: 2, fontSize: 8, fontWeight: 'bold' }}>Average Premium from Age {currentAge} to Age {ageAtRetirement}</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Basic</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option A</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option B</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option C</Text>
+              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Total Premium</Text>
+            </View>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ flex: 2, fontSize: 8 }}>Biweekly</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgBi)}</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgBi)}</Text>
+            </View>
+            <View style={{ flexDirection: 'row' }}>
+              <Text style={{ flex: 2, fontSize: 8 }}>Monthly</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgMo)}</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgMo)}</Text>
+            </View>
+          </View>
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 12 — FEHB
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 40 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            Federal Employees Health Benefit Program
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+
+          <Text style={{ fontSize: 10, marginTop: 4 }}>Calculations based on current Health Insurance premium of:</Text>
+          <Text style={{ fontSize: 10, marginLeft: 8 }}>Biweekly = {fmt.currency(fehbBiweekly)}</Text>
+          <Text style={{ fontSize: 10, marginLeft: 8 }}>Monthly = {fmt.currency(fehbMonthly)}</Text>
+          <Text style={{ fontSize: 10, marginLeft: 8 }}>Annual = {fmt.currency(fehbAnnual)}</Text>
+          <Text style={{ fontSize: 10, marginTop: 4, marginBottom: 12 }}>
+            The current premium is estimated to increase annually by {fmt.pct(fehbIncreaseRate)} (compounded)
+          </Text>
+
+          <DataTable
+            columns={[
+              { header: 'Age', width: '11%' },
+              { header: 'Biweekly Health Benefit Cost', width: '15%' },
+              { header: 'Monthly Health Benefit Cost', width: '15%' },
+              { header: 'Annual Health Benefit Cost', width: '15%' },
+              { header: 'Accumulated Cost', width: '15%' },
+              { header: 'Change From Previous Year', width: '15%' },
+            ]}
+            rows={fehbRows}
+          />
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 13 — FERS SUPPLEMENT + SS
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 50 }}>
+          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+            FERS Supplement and Estimated Social Security Benefits
+          </Text>
+          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
+            (All figures shown are hypothetical and based on information provided by you.)
+          </Text>
+          <Text style={{ fontSize: 9, marginBottom: 6, textDecoration: 'underline' }}>Benefits Data</Text>
+          <Text style={{ fontSize: 9, marginBottom: 12 }}>
+            Calculations based on a FERS Annuity COLA of {fmt.pctWhole(cola)} and a Social Security COLA of {fmt.pctWhole(cola)}.
+          </Text>
+
+          <DataTable
+            columns={[
+              { header: 'Age', width: '14%' },
+              { header: 'FERS Annuity', width: '16%' },
+              { header: 'FERS Supplement', width: '17%' },
+              { header: 'Estimated Social Security', width: '20%' },
+              { header: 'TOTAL', width: '17%' },
+              { header: 'Change', width: '16%' },
+            ]}
+            rows={supplementSsRows}
+          />
+        </View>
+      </ReportPage>
     </Document>
   );
 };
