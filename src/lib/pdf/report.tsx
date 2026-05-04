@@ -405,7 +405,9 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <View style={{ width: 280, borderTopWidth: 1, borderTopColor: '#000' }} />
           <View style={{ marginTop: 8, alignItems: 'center' }}>
             <Text style={{ fontSize: 10, color: '#000' }}>{brand}</Text>
-            {advisorName && <Text style={{ fontSize: 10, color: '#000' }}>{advisorName}</Text>}
+            {advisorName && advisorName !== brand && (
+              <Text style={{ fontSize: 10, color: '#000' }}>{advisorName}</Text>
+            )}
             <Text style={{ fontSize: 10, color: '#000' }}>1850 W. Ashton Blvd #175</Text>
             <Text style={{ fontSize: 10, color: '#000' }}>Lehi, UT 84043</Text>
             {phone && <Text style={{ fontSize: 10, color: '#000' }}>Phone: {phone}</Text>}
@@ -456,8 +458,10 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
 
           {/* Personal */}
           <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 4 }}>Personal</Text>
-          <SRow label="Name:" value={input.personal.fullName.split(' ')[0]} />
-          <SRow label="Address:" value={input.personal.fullName.split(' ').slice(1).join(' ')} />
+          <SRow label="Name:" value={input.personal.fullName} />
+          {input.personal.address ? (
+            <SRow label="Address:" value={input.personal.address} />
+          ) : null}
           <SRow label="Date Of Birth:" value={fmt.date(dob)} />
           <SRow label="Age:" value={String(currentAge)} />
 
@@ -480,11 +484,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <SRow label="Hourly Salary:" value={fmt.currencyWhole(hourlyAtRet)} />
           <SRow label="High 3 Average Salary:" value={fmt.currencyWhole(high3)} />
           <SRow label="Annual COLA:" value={fmt.pctWhole(cola)} />
+          {/* Service at retirement = civilian only (sick leave is shown separately) */}
           <SRow
             label="Creditable Service:"
-            value={`${result.annuity.totalServiceYears - sickLeaveYears} Years ${result.annuity.totalServiceMonths - sickLeaveMonthsExt} Months`}
+            value={`${civilianYears} Years ${civilianMonths} Month${civilianMonths === 1 ? '' : 's'}`}
           />
-          <SRow label="Sick Leave:" value={`${sickLeaveYears > 0 ? `${sickLeaveYears} Year` : ''} ${sickLeaveMonthsExt} Months`} />
+          <SRow
+            label="Sick Leave:"
+            value={`${sickLeaveYears > 0 ? `${sickLeaveYears} Year${sickLeaveYears === 1 ? '' : 's'} ` : ''}${sickLeaveMonthsExt} Month${sickLeaveMonthsExt === 1 ? '' : 's'}`}
+          />
           <SRow label="Age:" value={String(ageAtRetirement)} />
           <SRow label="Retirement Eligibility:" value="Service and Age Requirements Met" />
 

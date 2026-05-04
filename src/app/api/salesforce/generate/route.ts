@@ -144,7 +144,7 @@ function mapToReportInput(data: Record<string, any>): ReportInput {
     personal: {
       fullName: get('clientName', 'Federal Employee'),
       dateOfBirth: get('dateOfBirth', '1970-01-01'),
-      address: '',
+      address: get('address', '') || '',
       maritalStatus: (get('maritalStatus', 'SINGLE') || 'SINGLE') as any,
       spouseDateOfBirth: get('spouseDOB', ''),
     },
@@ -183,7 +183,23 @@ function mapToReportInput(data: Record<string, any>): ReportInput {
       governmentMatchPercent: 5,
       catchUpContribution: getNum('tspCatchUp', 0),
       expectedReturnRate: getNum('tspExpectedReturn', 0.07),
-      plannedWithdrawalAge: getNum('tspWithdrawalAge', 62),
+      // Default TSP withdrawal age to the planned retirement age — it's the
+      // overwhelmingly common case (clients withdraw on retirement). Old
+      // default of 62 produced a misleading narrative when the client retired
+      // later. The calc engine already projects to retirementYear, so this
+      // only affects the display age in the narrative.
+      plannedWithdrawalAge: (() => {
+        const explicit = getNum('tspWithdrawalAge', 0);
+        if (explicit > 0) return explicit;
+        try {
+          const retDate = new Date(get('plannedRetirementDate', '') as string);
+          const dobDate = new Date(get('dateOfBirth', '') as string);
+          const age = retDate.getFullYear() - dobDate.getFullYear();
+          return age > 0 && age < 100 ? age : 62;
+        } catch {
+          return 62;
+        }
+      })(),
       withdrawalMethod: (get('tspWithdrawalMethod', 'MONTHLY_PAYMENTS') || 'MONTHLY_PAYMENTS') as any,
       monthlyWithdrawalAmount: getNum('tspMonthlyWithdrawal', undefined),
     },
@@ -251,10 +267,10 @@ function mapToReportInput(data: Record<string, any>): ReportInput {
       hasRefundedService: get('hasRefundedService', false) === true,
       reDepositOwed: getNum('reDepositOwed', 0),
     },
-    advisorName: process.env.ADVISOR_NAME || 'Capital Wealth Advisors',
-    advisorCompany: 'Capital Wealth Advisors',
-    advisorPhone: process.env.ADVISOR_PHONE || '',
-    advisorEmail: process.env.ADVISOR_EMAIL || '',
+    advisorName: process.env.ADVISOR_NAME || 'Michael Stevens',
+    advisorCompany: process.env.ADVISOR_COMPANY || 'Capital Wealth',
+    advisorPhone: process.env.ADVISOR_PHONE || '(801) 210-2800',
+    advisorEmail: process.env.ADVISOR_EMAIL || 'casedesign@capitalwealth.com',
     survivorElection: (get('survivorElection', '50_PERCENT') || '50_PERCENT') as any,
     // COLA from SF (record.COLA_Adjustment__c, returned as whole percentage e.g. 2.0)
     // falls back to FERS standard 2% if not on the record.

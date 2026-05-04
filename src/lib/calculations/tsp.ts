@@ -136,7 +136,8 @@ function projectBalances(
   startYear: number,
   startAge: number,
   retirementYear: number,
-  projectionEndYear: number
+  projectionEndYear: number,
+  salaryIncreaseRate: number = 0
 ): TspProjectionYear[] {
   const projections: TspProjectionYear[] = [];
   let balance = startBalance;
@@ -145,8 +146,10 @@ function projectBalances(
     const age = startAge + (year - startYear);
     const isPreRetirement = year < retirementYear;
 
-    const contributions = isPreRetirement ? annualContribution : 0;
-    const match = isPreRetirement ? annualMatch : 0;
+    // Contribution escalates with salary growth pre-retirement.
+    const escalator = Math.pow(1 + salaryIncreaseRate, year - startYear);
+    const contributions = isPreRetirement ? annualContribution * escalator : 0;
+    const match = isPreRetirement ? annualMatch * escalator : 0;
 
     // Growth applies to start balance + half of year's contributions (mid-year assumption)
     const growthBase = balance + (contributions + match) / 2;
@@ -284,7 +287,8 @@ export function calculateTsp(
     currentYear,
     currentAge,
     retirementYear,
-    projectionEndYear
+    projectionEndYear,
+    employment.annualSalaryIncreaseRate
   );
 
   // Project Roth (no government match — match always goes to Traditional)
@@ -296,7 +300,8 @@ export function calculateTsp(
     currentYear,
     currentAge,
     retirementYear,
-    projectionEndYear
+    projectionEndYear,
+    employment.annualSalaryIncreaseRate
   );
 
   // Balances at retirement
