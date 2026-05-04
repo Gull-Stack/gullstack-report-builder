@@ -18,15 +18,18 @@ import type { EmploymentInfo, High3Detail } from '@/lib/types';
 export function projectSalaries(employment: EmploymentInfo): High3Detail[] {
   const retirementDate = parseISO(employment.plannedRetirementDate);
   const retirementYear = getYear(retirementDate);
+  const retirementMonth = retirementDate.getMonth(); // 0 = Jan
   const currentYear = new Date().getFullYear();
   const rate = employment.annualSalaryIncreaseRate;
   const baseSalary = employment.currentAnnualSalary;
 
   const salaries: High3Detail[] = [];
 
-  // Go back 3 years from current to ensure we capture enough history
+  // High-3 per OPM = highest 3 consecutive YEARS of basic pay. If the
+  // retirement happens early in the year (before July) the employee did
+  // not earn a full year's salary, so we exclude that partial year.
   const startYear = currentYear - 3;
-  const endYear = retirementYear;
+  const endYear = retirementMonth < 6 ? retirementYear - 1 : retirementYear;
 
   for (let year = startYear; year <= endYear; year++) {
     const yearsDiff = year - currentYear;
