@@ -278,7 +278,8 @@ export function calculateFegli(
   annualSalary: number,
   dateOfBirth: string,
   retirementDate: string,
-  projectionYears: number = 30
+  projectionYears: number = 30,
+  annualSalaryIncreaseRate: number = 0.02
 ): FegliResult {
   const dob = parseISO(dateOfBirth);
   const retirement = parseISO(retirementDate);
@@ -286,6 +287,10 @@ export function calculateFegli(
   const retirementAge = differenceInYears(retirement, dob);
   const retirementYear = getYear(retirement);
   const currentYear = new Date().getFullYear();
+
+  // Helper: projected salary at year offset i (i=0 is currentYear)
+  const salaryAt = (i: number) =>
+    annualSalary * Math.pow(1 + annualSalaryIncreaseRate, i);
 
   // Current coverage amounts
   const basicCov = fegli.basicCoverage ? calculateBasicCoverage(annualSalary) : 0;
@@ -324,28 +329,40 @@ export function calculateFegli(
         100
     ) / 100;
 
-  // Year-by-year cost projections
+  // Year-by-year cost projections.
+  // Pre-retirement: Basic coverage = ceil(projected salary / 1000) × 1000 + $2,000.
+  // Post-retirement: coverage freezes at the at-retirement amount and the
+  // elected reduction kicks in starting at max(65, retirementAge).
   const costProjections: FegliCostYear[] = [];
+
+  // Pre-compute the at-retirement basic coverage from the projected salary.
+  const yearsToRetirement = retirementYear - currentYear;
+  const retirementSalary = salaryAt(yearsToRetirement);
+  const basicCovAtRetirement = fegli.basicCoverage
+    ? calculateBasicCoverage(retirementSalary)
+    : 0;
 
   for (let i = 0; i <= projectionYears; i++) {
     const year = currentYear + i;
     const age = currentAge + i;
     const isRetired = year >= retirementYear;
 
-    // Basic coverage with post-65 reductions
+    // Basic coverage
     let basicInfo: { coverage: number; biweeklyCost: number };
     if (fegli.basicCoverage) {
       if (isRetired) {
         basicInfo = postRetirementBasicCoverage(
-          basicCov,
+          basicCovAtRetirement,
           age,
           retirementAge,
           fegli.postRetirementReduction
         );
       } else {
+        const yearSalary = salaryAt(i);
+        const yearCoverage = calculateBasicCoverage(yearSalary);
         basicInfo = {
-          coverage: basicCov,
-          biweeklyCost: basicBiweeklyCost(basicCov, age, false),
+          coverage: yearCoverage,
+          biweeklyCost: basicBiweeklyCost(yearCoverage, age, false),
         };
       }
     } else {

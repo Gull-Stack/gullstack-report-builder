@@ -202,11 +202,21 @@ function mapToReportInput(data: Record<string, any>): ReportInput {
       biweeklyPremium: getNum('fehbBiweeklyPremium', 200),
       premiumIncreaseRate: getNum('fehbIncreaseRate', 0.05),
     },
-    socialSecurity: {
-      estimatedBenefitAge62: getNum('ssBenefitAge62', 1500),
-      estimatedBenefitFRA: getNum('ssBenefitAge62', 1500) * 1.4,
-      plannedStartAge: getNum('ssStartAge', 62),
-    },
+    socialSecurity: (() => {
+      // The SF field SS_FERS_Monthly_Benefit__c is the benefit at the planned
+      // start age (typically what the SSA "your personalized statement" shows
+      // for the age the client picked), NOT specifically the age-62 amount.
+      // We feed it as estimatedBenefitFRA — when planned start age >= FRA the
+      // calc engine returns this value verbatim; when start age < FRA the calc
+      // applies SSA's early-claiming reduction.
+      const benefitAtStartAge = getNum('ssBenefitAge62', 0);
+      const startAge = getNum('ssStartAge', 67);
+      return {
+        estimatedBenefitAge62: 0, // unknown — calc engine derives from FRA if needed
+        estimatedBenefitFRA: benefitAtStartAge,
+        plannedStartAge: startAge,
+      };
+    })(),
     ltc: { enrolled: false, currentPremium: 0, dailyBenefitAmount: 0, benefitPeriodYears: 3 },
     otherIncome: {
       otherPensions: getNum('otherPensions', 0),

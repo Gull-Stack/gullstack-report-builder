@@ -101,9 +101,13 @@ export function calculateReport(input: ReportInput): CalculationResult {
   };
 
   // ---- Survivor Benefit ----
-  // Determine survivor election from marital status
+  // Honor explicit input.survivorElection when provided (set by the advisor or
+  // parsed from the SF FBI record). Fall back to marital-status default only
+  // when truly absent — silently overriding an explicit '50_PERCENT' to NONE
+  // because maritalStatus is missing was Matt Dyer's bug.
   const survivorElection: SurvivorElection =
-    input.personal.maritalStatus === 'MARRIED' ? '50_PERCENT' : 'NONE';
+    (input.survivorElection as SurvivorElection | undefined) ??
+    (input.personal.maritalStatus === 'MARRIED' ? '50_PERCENT' : 'NONE');
   const survivorBenefit = calculateSurvivorBenefit(
     effectiveAnnualAnnuity,
     survivorElection,
@@ -166,7 +170,8 @@ export function calculateReport(input: ReportInput): CalculationResult {
     input.employment.currentAnnualSalary,
     input.personal.dateOfBirth,
     input.employment.plannedRetirementDate,
-    projectionYears
+    projectionYears,
+    input.employment.annualSalaryIncreaseRate,
   );
 
   // ---- FEHB ----
