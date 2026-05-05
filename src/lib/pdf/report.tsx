@@ -4,9 +4,11 @@
 // ============================================================
 
 import React from 'react';
-import { Document, Page, View, Text } from '@react-pdf/renderer';
+import { Document, Page, View, Text, Image } from '@react-pdf/renderer';
 import { format, parseISO, getYear } from 'date-fns';
-import styles from './styles';
+import styles, { colors } from './styles';
+
+const CW_LOGO_URL = 'https://www.capitalwealth.com/assets/images/logos/logo-horizontal-color.png';
 import type {
   ReportInput,
   CalculationResult,
@@ -385,139 +387,173 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
     >
       {/* ============================================================
           PAGE 1 — COVER
+          (3-Kings: Voss empathy + Miller hero — the federal employee
+          is the hero; this report is the plan that takes them home.)
           ============================================================ */}
       <Page size="LETTER" style={styles.coverPage}>
-        <View style={{ alignItems: 'center', marginTop: 60 }}>
-          <Text style={[styles.coverLogo, { color: '#1a3a5c', fontSize: 36 }]}>CAPITAL</Text>
-          <Text style={[styles.coverLogo, { color: '#5a7a8a', fontSize: 32, marginTop: -4 }]}>WEALTH</Text>
+        <Text style={styles.coverEyebrow}>STRATEGIC INCOME &amp; TAX PLANNING</Text>
+
+        <View style={{ alignItems: 'center', marginTop: 18 }}>
+          <Image src={CW_LOGO_URL} style={{ width: 220, height: 73, opacity: 0.95 }} />
         </View>
-        <View style={{ marginTop: 80, alignItems: 'center' }}>
-          <Text style={{ fontSize: 24, color: '#000', fontWeight: 'bold', textAlign: 'center' }}>
-            Federal Employee
+
+        <View style={styles.coverDivider} />
+
+        <Text style={styles.coverTitle}>
+          Federal Employee{'\n'}Benefits Analysis
+        </Text>
+
+        <Text style={[styles.coverSubtitle, { marginTop: 14 }]}>
+          YOUR RETIREMENT, DECODED
+        </Text>
+
+        <Text style={styles.coverClient}>
+          Prepared for {input.personal.fullName}
+        </Text>
+        <Text style={styles.coverDate}>{fmt.dateLong(today)}</Text>
+        <Text style={[styles.coverDate, { color: colors.gold, marginTop: 2 }]}>
+          Planned Retirement: {fmt.dateLong(retDate)}
+        </Text>
+
+        <View style={{ position: 'absolute', bottom: 70, left: 60, right: 60, alignItems: 'center' }}>
+          <View style={{ width: 60, height: 1, backgroundColor: colors.gold, marginBottom: 14 }} />
+          <Text style={styles.coverAdvisor}>{brand}</Text>
+          {advisorName && advisorName !== brand && (
+            <Text style={styles.coverAdvisor}>{advisorName}, Founder</Text>
+          )}
+          <Text style={styles.coverAdvisor}>1850 W. Ashton Blvd, Suite 175 · Lehi, UT 84043</Text>
+          {phone && <Text style={styles.coverAdvisor}>{phone} · {email || 'capitalwealth.com'}</Text>}
+        </View>
+
+        <View style={{ position: 'absolute', bottom: 28, left: 60, right: 60 }}>
+          <Text style={styles.coverDisclaimer}>
+            Confidential. Prepared for the named recipient. Figures shown are hypothetical
+            illustrations based on information you provided.
           </Text>
-          <Text style={{ fontSize: 24, color: '#000', fontWeight: 'bold', textAlign: 'center' }}>
-            Benefits Analysis
-          </Text>
-          <Text style={{ fontSize: 11, color: '#000', marginTop: 8 }}>
-            {fmt.dateLong(today)}
-          </Text>
-        </View>
-        <View style={{ marginTop: 80, alignItems: 'center' }}>
-          {(() => {
-            const parts = (input.personal.fullName || '').trim().split(/\s+/);
-            const first = parts[0] ?? '';
-            const last = parts.slice(1).join(' ');
-            return (
-              <>
-                <Text style={{ fontSize: 14, color: '#000' }}>{first}</Text>
-                <Text style={{ fontSize: 14, color: '#000' }}>{last}</Text>
-              </>
-            );
-          })()}
-        </View>
-        <View style={{ marginTop: 60, alignItems: 'center' }}>
-          <View style={{ width: 280, borderTopWidth: 1, borderTopColor: '#000' }} />
-          <View style={{ marginTop: 8, alignItems: 'center' }}>
-            <Text style={{ fontSize: 10, color: '#000' }}>{brand}</Text>
-            {advisorName && advisorName !== brand && (
-              <Text style={{ fontSize: 10, color: '#000' }}>{advisorName}</Text>
-            )}
-            <Text style={{ fontSize: 10, color: '#000' }}>1850 W. Ashton Blvd #175</Text>
-            <Text style={{ fontSize: 10, color: '#000' }}>Lehi, UT 84043</Text>
-            {phone && <Text style={{ fontSize: 10, color: '#000' }}>Phone: {phone}</Text>}
-            {email && <Text style={{ fontSize: 10, color: '#000' }}>Email: {email}</Text>}
-          </View>
-          <View style={{ width: 280, borderTopWidth: 1, borderTopColor: '#000', marginTop: 8 }} />
-        </View>
-        <View style={styles.footer} fixed>
-          <Text
-            style={styles.pageNumber}
-            render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-          />
         </View>
       </Page>
 
       {/* ============================================================
-          PAGE 2 — DISCLAIMER
+          PAGE 2 — ABOUT THIS PLAN + LEGAL DISCLAIMER
+          (StoryBrand: brief warm framing — what's in here for you —
+          followed by the legal disclaimer required by federal regs.)
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
-        <View style={{ paddingHorizontal: 30 }}>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginTop: 30, marginBottom: 20 }}>
-            Disclaimer
-          </Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, textAlign: 'justify' }}>
-            This report illustrates estimates of cost and benefits for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS), Federal Employees Group Life Insurance (FEGLI), Federal Employees Health Benefits Program (FEHB), Long Term Care (LTC) Insurance, Social Security System benefits, and the Thrift Savings Plan (TSP). Some estimates are based on assumptions, which may affect the results, and may differ from actual experience. Since future costs and benefits cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report, and it is recommended to consult with your personnel office or the Office of Personnel Management (OPM), Retirement Information Office 1-888-767-6738. {brand} cannot provide retirement analysis and decision information to you. The analysis is provided 'AS IS' without warranties of any kind (including the implied warranties of merchantability and fitness for a particular purpose). No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis, and you may not rely upon such information or advice. Neither {brand} nor anyone else who has been involved in the creation, production, or delivery of this analysis shall be liable for any direct, indirect, consequential, or incidental damages (including, but not limited to, damages for loss of business or personal profits, business or personal interruption, and loss of business or personal information) arising from the use of (or inability to use) this analysis.
-          </Text>
-          <View style={{ alignItems: 'center', marginVertical: 16 }}>
-            <View style={{ width: 200, borderTopWidth: 1, borderTopColor: '#000' }} />
-          </View>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, textAlign: 'justify' }}>
-            {brand}, LLC &amp; CWA Insurance Services, LLC is not affiliated with or endorsed by the U.S. Government, Social Security Administration, Office of Personnel Management, or any federal agency. This is an independent educational seminar provided by {brand}, a registered investment advisor. All information presented is for educational purposes only and should not be considered official government guidance.
+        <Text style={styles.sectionEyebrow}>ABOUT THIS PLAN</Text>
+        <Text style={styles.sectionTitle}>What you'll find inside.</Text>
+        <View style={styles.goldDivider} />
+
+        <Text style={styles.text}>
+          You've spent your career serving the federal government. The benefits
+          you've earned — your annuity, TSP, FEGLI, FEHB, Social Security — work
+          together. This analysis lays them out in one place, in plain English,
+          so you can see exactly where you stand and what to do next.
+        </Text>
+
+        <View style={styles.promise}>
+          <Text style={styles.promiseText}>
+            "Our job is to take the complexity off your plate so you can retire
+            with confidence — knowing the math, the income, and the tax picture
+            are working in your favor."
           </Text>
         </View>
+
+        <Text style={[styles.groupLabel, { marginTop: 18 }]}>Disclaimer</Text>
+        <Text style={[styles.textSmall, { textAlign: 'justify' }]}>
+          This report illustrates estimates of cost and benefits for CSRS or FERS,
+          FEGLI, FEHB, Long Term Care Insurance, Social Security System benefits,
+          and the Thrift Savings Plan (TSP). Estimates are based on assumptions
+          which may affect the results and differ from actual experience. Future
+          costs and benefits cannot be estimated with absolute certainty — do not
+          base financial decisions solely on this report. Consult your personnel
+          office or the Office of Personnel Management (OPM) Retirement Information
+          Office at 1-888-767-6738. The analysis is provided 'AS IS' without
+          warranties of any kind. {brand} and its agents are not liable for any
+          direct, indirect, consequential, or incidental damages arising from the
+          use of (or inability to use) this analysis.
+        </Text>
+        <Text style={[styles.textSmall, { marginTop: 10, textAlign: 'justify' }]}>
+          {brand}, LLC and CWA Insurance Services, LLC are not affiliated with or
+          endorsed by the U.S. Government, Social Security Administration, Office
+          of Personnel Management, or any federal agency. This report is provided
+          for educational purposes by {brand}, a registered investment advisor.
+        </Text>
       </ReportPage>
 
       {/* ============================================================
           PAGE 3 — FEDERAL EMPLOYEE BENEFITS SUMMARY
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
-        <View style={{ paddingHorizontal: 50 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 20 }}>
-            Federal Employee Benefits - Summary
+        <Text style={styles.sectionEyebrow}>YOUR PLAN AT A GLANCE</Text>
+        <Text style={styles.sectionTitle}>Federal Employee Benefits Summary</Text>
+        <View style={styles.goldDivider} />
+
+        {/* HERO — the headline annuity (Belfort straight line: lead with the answer) */}
+        <View style={styles.hero}>
+          <Text style={styles.heroLabel}>YOUR MONTHLY ANNUITY AT RETIREMENT</Text>
+          <Text style={styles.heroValue}>{fmt.currencyWhole(monthlyNoSurv)}/mo</Text>
+          <Text style={styles.heroCaption}>
+            That's {fmt.currencyWhole(annualNoSurv)} per year — guaranteed by the federal government,
+            with a {fmt.pctWhole(cola)} annual COLA. Begins {fmt.dateLong(retDate)}.
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
-            (All figures shown are hypothetical and based on information provided by you. Any change to{'\n'}
-            your benefit elections, salary or other information provided by you could alter these figures.)
-          </Text>
+        </View>
 
-          {/* Personal */}
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 4 }}>Personal</Text>
-          <SRow label="Name:" value={input.personal.fullName} />
-          {input.personal.address ? (
-            <SRow label="Address:" value={input.personal.address} />
-          ) : null}
-          <SRow label="Date Of Birth:" value={fmt.date(dob)} />
-          <SRow label="Age:" value={String(currentAge)} />
+        {/* 3 supporting metrics */}
+        <View style={styles.metricRow}>
+          <View style={styles.metricTile}>
+            <Text style={styles.metricLabel}>HIGH-3 SALARY</Text>
+            <Text style={styles.metricValue}>{fmt.currencyWhole(high3)}</Text>
+          </View>
+          <View style={styles.metricTile}>
+            <Text style={styles.metricLabel}>SERVICE AT RETIREMENT</Text>
+            <Text style={styles.metricValue}>{civilianYears}y {civilianMonths}m</Text>
+          </View>
+          <View style={styles.metricTile}>
+            <Text style={styles.metricLabel}>RETIREMENT AGE</Text>
+            <Text style={styles.metricValue}>{ageAtRetirement}</Text>
+          </View>
+        </View>
 
-          {/* Employment */}
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Employment</Text>
-          <SRow label="Service Computation Date:" value={fmt.date(input.employment.serviceComputationDate)} />
-          <SRow label="Annual Salary:" value={fmt.currency(salaryNow)} />
-          <SRow label="Hourly Salary:" value={fmt.currency(hourlyNow)} />
-          <SRow label="Annual Salary Increase:" value={`${fmt.pct(salaryRate)} (Estimated)`} />
-          <SRow label="Creditable Service:" value={`${currentCivilianYears} Year${currentCivilianYears === 1 ? '' : 's'} ${currentCivilianMonths} Month${currentCivilianMonths === 1 ? '' : 's'}`} />
-          <SRow label="Sick Leave:" value={`${currentSickLeaveYears > 0 ? `${currentSickLeaveYears} Year${currentSickLeaveYears === 1 ? '' : 's'} ` : '0 Years '}${currentSickLeaveMonthsRem} Month${currentSickLeaveMonthsRem === 1 ? '' : 's'}`} />
+        {/* Survivor scenario */}
+        <Text style={styles.groupLabel}>SURVIVOR ELECTION — {survivorElection === '50_PERCENT' ? '50%' : survivorElection === '25_PERCENT' ? '25%' : 'NONE'}</Text>
+        <SRow label="Your Annuity (no survivor benefit)" value={`${fmt.currencyWhole(monthlyNoSurv)}/mo`} />
+        <SRow label="Your Annuity (with survivor benefit)" value={`${fmt.currencyWhole(monthlyWithSurv)}/mo`} />
+        <SRow label="Spouse's Survivor Benefit" value={`${fmt.currencyWhole(survivorMonthlyBenefit)}/mo`} />
+        <SRow label="Cost of Survivor Election" value={`${fmt.currencyWhole(monthlySurvivorCost)}/mo`} />
 
-          {/* Retirement */}
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Retirement</Text>
-          <SRow label="Retirement System:" value={input.employment.retirementSystem} />
-          <SRow label="Employee Type:" value={input.employment.employeeType} />
-          <SRow label="Retirement Type:" value={input.employment.employeeType === 'REGULAR' ? 'REGULAR' : input.employment.employeeType} />
-          <SRow label="Planned Retirement Date:" value={fmt.date(retDate)} />
-          <SRow label="Annual Salary:" value={fmt.currencyWhole(salaryAtRet)} />
-          <SRow label="Hourly Salary:" value={fmt.currencyWhole(hourlyAtRet)} />
-          <SRow label="High 3 Average Salary:" value={fmt.currencyWhole(high3)} />
-          <SRow label="Annual COLA:" value={fmt.pctWhole(cola)} />
-          {/* Service at retirement = civilian only (sick leave is shown separately) */}
-          <SRow
-            label="Creditable Service:"
-            value={`${civilianYears} Years ${civilianMonths} Month${civilianMonths === 1 ? '' : 's'}`}
-          />
-          <SRow
-            label="Sick Leave:"
-            value={`${sickLeaveYears > 0 ? `${sickLeaveYears} Year${sickLeaveYears === 1 ? '' : 's'} ` : ''}${sickLeaveMonthsExt} Month${sickLeaveMonthsExt === 1 ? '' : 's'}`}
-          />
-          <SRow label="Age:" value={String(ageAtRetirement)} />
-          <SRow label="Retirement Eligibility:" value="Service and Age Requirements Met" />
+        {/* Personal + Employment + Retirement details — two columns for density */}
+        <View style={{ flexDirection: 'row', gap: 18, marginTop: 6 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.groupLabel}>PERSONAL</Text>
+            <SRow label="Name" value={input.personal.fullName} />
+            {input.personal.address ? (
+              <SRow label="Address" value={input.personal.address} />
+            ) : null}
+            <SRow label="Date of Birth" value={fmt.date(dob)} />
+            <SRow label="Current Age" value={String(currentAge)} />
 
-          {/* Monthly Annuity */}
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 12 }}>
-            Monthly Retirement Annuity - {input.employment.retirementSystem} Survivor with a {survivorElection === '50_PERCENT' ? '50%' : survivorElection === '25_PERCENT' ? '25%' : '0%'} Annuity
-          </Text>
-          <SRow label="Annuity Without Survivor*:" value={fmt.currencyWhole(monthlyNoSurv)} />
-          <SRow label="Annuity With Survivor*:" value={fmt.currencyWhole(monthlyWithSurv)} />
-          <SRow label="Survivor's Annuity:" value={fmt.currencyWhole(survivorMonthlyBenefit)} />
-          <SRow label="Cost of Survivor's Annuity*:" value={fmt.currencyWhole(monthlySurvivorCost)} />
+            <Text style={styles.groupLabel}>EMPLOYMENT TODAY</Text>
+            <SRow label="Service Computation Date" value={fmt.date(input.employment.serviceComputationDate)} />
+            <SRow label="Annual Salary" value={fmt.currency(salaryNow)} />
+            <SRow label="Hourly" value={fmt.currency(hourlyNow)} />
+            <SRow label="Annual Increase" value={`${fmt.pct(salaryRate)} est.`} />
+            <SRow label="Creditable Service" value={`${currentCivilianYears}y ${currentCivilianMonths}m`} />
+            <SRow label="Sick Leave" value={`${currentSickLeaveYears > 0 ? `${currentSickLeaveYears}y ` : ''}${currentSickLeaveMonthsRem}m`} />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.groupLabel}>AT RETIREMENT</Text>
+            <SRow label="System" value={input.employment.retirementSystem} />
+            <SRow label="Employee Type" value={input.employment.employeeType} />
+            <SRow label="Retirement Date" value={fmt.date(retDate)} />
+            <SRow label="Projected Salary" value={fmt.currencyWhole(salaryAtRet)} />
+            <SRow label="High-3 Average" value={fmt.currencyWhole(high3)} />
+            <SRow label="Annual COLA" value={fmt.pctWhole(cola)} />
+            <SRow label="Creditable Service" value={`${civilianYears}y ${civilianMonths}m`} />
+            <SRow label="Sick Leave Credit" value={`${sickLeaveYears > 0 ? `${sickLeaveYears}y ` : ''}${sickLeaveMonthsExt}m`} />
+            <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
+            <SRow label="Eligibility" value="Service & Age met" />
+          </View>
         </View>
       </ReportPage>
 
@@ -526,19 +562,19 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 30 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Proposed &amp; Delayed Retirement
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
           <SRow label="Retirement System" value={input.employment.retirementSystem} />
           <SRow label="Employee Type" value={input.employment.employeeType} />
           <SRow label="Retirement Type" value="REGULAR" />
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
           <SRow label="Estimated High 3 Average At Retirement" value={fmt.currency(high3)} />
           <SRow label="Estimated High 3 Increase / Year" value={fmt.pctWhole(salaryRate)} />
           <SRow label="Length of Service at Retirement" value={String(civilianYears)} />
@@ -549,7 +585,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <SRow label={`${input.employment.retirementSystem} Survivor`}
                 value={survivorElection === '50_PERCENT' ? '50% Annuity' : survivorElection === '25_PERCENT' ? '25% Annuity' : 'None'} />
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 10 }}>
             Proposed and Delayed Retirement Data
           </Text>
 
@@ -565,28 +601,28 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
                 'Annual Survivor Annuity ($)', 'Monthly Survivor Annuity ($)',
                 'Annual Cost of Survivor Annuity ($)', 'Monthly Cost of Survivor Annuity ($)',
               ].map((l, i) => (
-                <Text key={i} style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>
+                <Text key={i} style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>
                   {l}
                 </Text>
               ))}
             </View>
             {delayedRows.map((r, idx) => (
               <View key={idx} style={{ flex: 1, alignItems: 'center', backgroundColor: idx === 0 ? '#fff' : (idx % 2 ? '#f7f7f7' : '#fff') }}>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.age}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.civYears}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.civMonths}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.slM}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.projHigh3).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{r.high3Change ? Math.round(r.high3Change).toLocaleString() : ''}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annWith).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moWith).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annSurvBen).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moSurvBen).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.annCostSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 6, paddingVertical: 2, borderBottomWidth: 0.5, borderBottomColor: '#ccc' }}>{Math.round(r.moCostSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.age}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.civYears}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.civMonths}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.slM}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.projHigh3).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.high3Change ? Math.round(r.high3Change).toLocaleString() : ''}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moNoSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annWith).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moWith).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annSurvBen).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moSurvBen).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annCostSurv).toLocaleString()}</Text>
+                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moCostSurv).toLocaleString()}</Text>
               </View>
             ))}
           </View>
@@ -601,11 +637,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 50 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Retirement Annuity and Surviving Spouse Benefit
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
           <Text style={{ fontSize: 9, marginBottom: 6 }}>
             <Text style={{ textDecoration: 'underline' }}>Benefits Data</Text>
@@ -637,19 +673,19 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 40 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 30, marginBottom: 18 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 16, marginBottom: 14 }]}>
             TSP Disclaimer
           </Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
             <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This calculator is provided for informational purposes only</Text>. It is not intended to provide retirement income advice, be used as an investment advisory tool, as a guarantee of monthly payment amounts, as a guarantee of a final account balance or as a guarantee of the duration of the elected monthly payment amount. The monthly income illustrated is based on a gross distribution without consideration for income tax.
           </Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
             <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This report illustrates hypothetical balances at retirement</Text> for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS) Thrift Savings Plan (TSP). Estimates are based on assumptions, which may affect the results and may differ from actual experience. Since future rates of return and performance cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report and it is recommended that you consult with your personnel office, the Office of Personnel Management (OPM) or Retirement Information Office 1888-767-6738. {brand} cannot provide retirement analysis and decision information to you. No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis and you may not rely upon such information or advice. The analysis is provided 'AS IS' without warranties or representations of any kind and disclaim all express, implied and statutory warranties of any kind to the user and any third party, (including, but not limited to, the implied warranties of accuracy, timeliness, completeness, merchantability, noninfringement and fitness for a particular purpose).
           </Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, marginBottom: 10, textAlign: 'justify' }}>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
             Neither {brand} nor anyone else who has been involved in the creation, production or delivery of this analysis shall be liable for any direct, indirect, consequential, or incidental damages (including, but not limited to, damages for lost profits or lost opportunity, loss of business or personal profits, business or personal interruption, loss of business or personal information, special, or punitive damages whatsoever) arising from the use of (or inability to use) this analysis.
           </Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, fontStyle: 'italic', textDecoration: 'underline', textAlign: 'justify' }}>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, fontStyle: 'italic', textDecoration: 'underline', textAlign: 'justify' }}>
             All figures shown are hypothetical and based on information provided by you. Any change to your benefit elections, salary or other information provided by you could alter these figures.
           </Text>
         </View>
@@ -660,44 +696,44 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 40 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 16 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Traditional Savings</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Traditional Savings</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             There are six separate funds (G, F, C, S, I, and L) in which to accumulate savings. At this time you have accumulated{' '}
             {input.tsp.traditionalBalances.map((b) =>
               `${fmt.currency(b.balance)} in the ${b.fund} Fund`
             ).join(', ')} for a total of {fmt.currency(input.tsp.traditionalBalances.reduce((a, b) => a + b.balance, 0))}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             The following rates were selected by you for calculating future earnings:{' '}
             {input.tsp.traditionalBalances
               .filter(b => b.fund !== 'L')
               .map((b) => `${b.fund} Fund ${fmt.pct(b.returnRate)}`).join(', ')}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Traditional Contributions</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Traditional Contributions</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionTraditional)} from your salary and an additional {fmt.currency(input.tsp.catchUpContribution)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionTraditional + input.tsp.catchUpContribution)}.
           </Text>
-          <Text style={{ fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 11, marginTop: 6, fontStyle: 'italic', color: colors.gray }}>
             In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You elected to start withdrawing funds at the age of {input.tsp.plannedWithdrawalAge} years and 0 months. The estimated savings at that age is {fmt.currency(result.tsp.totalAtRetirement)}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             {input.tsp.withdrawalMethod === 'MONTHLY_PAYMENTS' ? 'Monthly Payments' : input.tsp.withdrawalMethod}
           </Text>
         </View>
@@ -708,14 +744,14 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 30 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 6 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 6 }}>
             Summary of Annual Contributions and Savings: {tspTrad[0]?.year} to {tspTrad[tspTrad.length - 1]?.year}
           </Text>
 
@@ -750,43 +786,43 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 40 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 16 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Roth Savings</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Roth Savings</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             There are six separate funds (G, F, C, S, I, and L) in which to accumulate savings. At this time you have accumulated{' '}
             {input.tsp.rothBalances.map((b) =>
               `${fmt.currency(b.balance)} in the ${b.fund} Fund`
             ).join(', ')} for a total of {fmt.currency(input.tsp.rothBalances.reduce((a, b) => a + b.balance, 0))}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Hypothetical Annual Return Rates</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             The following rates were selected by you for calculating future earnings:{' '}
             {input.tsp.rothBalances
               .filter(b => b.fund !== 'L')
               .map((b) => `${b.fund} Fund ${fmt.pct(b.returnRate)}`).join(', ')}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Roth Contributions</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Roth Contributions</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionRoth)} from your salary and an additional {fmt.currency(0)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionRoth)}.
           </Text>
-          <Text style={{ fontSize: 10, marginTop: 6, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 11, marginTop: 6, fontStyle: 'italic', color: colors.gray }}>
             In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Hypothetical Balance at Withdrawal</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You elected to start withdrawing funds at the age of {input.tsp.plannedWithdrawalAge} years and 0 months. The estimated savings at that age is {fmt.currency(result.tsp.rothAtRetirement)}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
-          <Text style={{ fontSize: 10, lineHeight: 1.5, marginTop: 4 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 14 }}>Withdrawal Option Selected</Text>
+          <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             {input.tsp.withdrawalMethod === 'MONTHLY_PAYMENTS' ? 'Monthly Payments' : input.tsp.withdrawalMethod}
           </Text>
         </View>
@@ -797,11 +833,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 30 }}>
-          <Text style={{ fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - ROTH Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
           {input.tsp.annualContributionRoth > 0 || input.tsp.rothBalances.some(b => b.balance > 0) ? (
@@ -839,15 +875,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 25 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 14 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Group Life Insurance
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 12 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline' }}>Summary as of {format(new Date(), 'MMM-dd-yyyy')}</Text>
-          <Text style={{ fontSize: 9, lineHeight: 1.5, marginTop: 4, marginBottom: 10 }}>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Summary as of {format(new Date(), 'MMM-dd-yyyy')}</Text>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             At your current age of {currentAge}, your annual salary is {fmt.currency(salaryNow)}, and you expect annual salary increases of {fmt.pct(salaryRate)}. Your life insurance coverage includes:
             {input.fegli.basicCoverage ? ' Basic (equal to your rounded annual salary plus $2000).' : ''}
             {input.fegli.optionA ? ' Option A.' : ''}
@@ -856,7 +892,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             {' '}You plan to retire on {fmt.date(retDate)} at the age of {ageAtRetirement}.
           </Text>
 
-          <Text style={{ fontSize: 10, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>FEGLI Premiums and Coverage</Text>
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>FEGLI Premiums and Coverage</Text>
 
           <DataTable
             columns={[
@@ -877,28 +913,28 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
 
           <View style={{ marginTop: 8, padding: 4, borderWidth: 0.5, borderColor: '#000' }}>
             <View style={{ flexDirection: 'row' }}>
-              <Text style={{ flex: 2, fontSize: 8, fontWeight: 'bold' }}>Average Premium from Age {currentAge} to Age {ageAtRetirement}</Text>
-              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Basic</Text>
-              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option A</Text>
-              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option B</Text>
-              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Option C</Text>
-              <Text style={{ flex: 1, fontSize: 8, fontWeight: 'bold' }}>Total Premium</Text>
+              <Text style={{ flex: 2, fontSize: 10, fontWeight: 700 }}>Average Premium from Age {currentAge} to Age {ageAtRetirement}</Text>
+              <Text style={{ flex: 1, fontSize: 10, fontWeight: 700 }}>Basic</Text>
+              <Text style={{ flex: 1, fontSize: 10, fontWeight: 700 }}>Option A</Text>
+              <Text style={{ flex: 1, fontSize: 10, fontWeight: 700 }}>Option B</Text>
+              <Text style={{ flex: 1, fontSize: 10, fontWeight: 700 }}>Option C</Text>
+              <Text style={{ flex: 1, fontSize: 10, fontWeight: 700 }}>Total Premium</Text>
             </View>
             <View style={{ flexDirection: 'row' }}>
-              <Text style={{ flex: 2, fontSize: 8 }}>Biweekly</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgBi)}</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgBi)}</Text>
+              <Text style={{ flex: 2, fontSize: 10 }}>Biweekly</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>{fmt.currency(avgBi)}</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>{fmt.currency(avgBi)}</Text>
             </View>
             <View style={{ flexDirection: 'row' }}>
-              <Text style={{ flex: 2, fontSize: 8 }}>Monthly</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgMo)}</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>$0.00</Text>
-              <Text style={{ flex: 1, fontSize: 8 }}>{fmt.currency(avgMo)}</Text>
+              <Text style={{ flex: 2, fontSize: 10 }}>Monthly</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>{fmt.currency(avgMo)}</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>$0.00</Text>
+              <Text style={{ flex: 1, fontSize: 10 }}>{fmt.currency(avgMo)}</Text>
             </View>
           </View>
         </View>
@@ -909,11 +945,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 40 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Health Benefit Program
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
 
           <Text style={{ fontSize: 10, marginTop: 4 }}>Calculations based on current Health Insurance premium of:</Text>
@@ -943,11 +979,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <View style={{ paddingHorizontal: 50 }}>
-          <Text style={{ fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginTop: 16 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             FERS Supplement and Estimated Social Security Benefits
           </Text>
-          <Text style={{ fontSize: 8, textAlign: 'center', color: '#666', marginBottom: 14 }}>
-            (All figures shown are hypothetical and based on information provided by you.)
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+            All figures are hypothetical and based on the information provided.
           </Text>
           <Text style={{ fontSize: 9, marginBottom: 6, textDecoration: 'underline' }}>Benefits Data</Text>
           <Text style={{ fontSize: 9, marginBottom: 12 }}>

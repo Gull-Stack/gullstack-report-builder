@@ -1,110 +1,148 @@
 // ============================================================
 // Federal Retirement Report — PDF Stylesheet
+// Aligned with capitalwealth.com brand system.
 // ============================================================
 
-import { StyleSheet } from '@react-pdf/renderer';
+import { StyleSheet, Font } from '@react-pdf/renderer';
 
-// Brand palette
+// ---- Register brand fonts (Cormorant Garamond + Geist via Google Fonts) ----
+// @react-pdf supports remote font URLs. We pull the same families used on
+// capitalwealth.com so PDFs visually match the website.
+Font.register({
+  family: 'Cormorant Garamond',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3bmX5slCNuHLi8bLeY9MK7whWMhyjornFLsS6V7w.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3YmX5slCNuHLi8bLeY9MK7whWMhyjYrEPjsSqVwQ.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3WmX5slCNuHLi8bLeY9MK7whWMhyjQAllvuQWJ5hI.ttf', fontWeight: 400, fontStyle: 'italic' },
+  ],
+});
+
+Font.register({
+  family: 'Manrope',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgmxSg.ttf', fontWeight: 500 },
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgvxSg.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgsBSg.ttf', fontWeight: 700 },
+  ],
+});
+
+// Brand palette — matches capitalwealth.com CSS variables.
 export const colors = {
-  navy: '#16253C',
-  navyLight: '#1E3456',
-  gold: '#C7A356',
-  goldLight: '#E2D4A8',
+  navy: '#16253C',          // --navy
+  navyLight: '#15437a',     // --bg-secondary
+  navyMid: '#1e3350',       // --bg-card
+  blue: '#2b7bb9',          // --accent-primary
+  blueHover: '#02528a',     // --accent-hover
+  gold: '#C7A356',          // --accent-secondary
+  goldLight: '#FDD25E',
+  goldPale: '#fef9ee',
+  brandGrey: '#7b868C',     // --brand-grey
   white: '#FFFFFF',
-  offWhite: '#F7F8FA',
-  gray: '#6B7280',
+  offWhite: '#fafbfc',
+  pageOff: '#f0f4fa',
   grayLight: '#E5E7EB',
+  gray: '#6B7280',
   grayDark: '#374151',
-  black: '#111827',
+  black: '#0F1A2A',
   green: '#059669',
   red: '#DC2626',
-  blue: '#2563EB',
 };
+
+// Typography — bigger than before so the report is comfortable to read.
+const FONT_BODY = 'Manrope';
+const FONT_DISPLAY = 'Cormorant Garamond';
 
 const styles = StyleSheet.create({
   // ---- Page ----
   page: {
-    fontFamily: 'Helvetica',
-    fontSize: 9,
+    fontFamily: FONT_BODY,
+    fontSize: 11,
     color: colors.black,
     backgroundColor: colors.white,
-    paddingTop: 70,
-    paddingBottom: 60,
-    paddingHorizontal: 40,
+    paddingTop: 75,
+    paddingBottom: 55,
+    paddingHorizontal: 50,
+    lineHeight: 1.45,
   },
 
   // ---- Cover Page ----
   coverPage: {
-    fontFamily: 'Helvetica',
+    fontFamily: FONT_BODY,
     backgroundColor: colors.navy,
     color: colors.white,
-    paddingHorizontal: 50,
+    paddingHorizontal: 60,
     paddingVertical: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
     height: '100%',
   },
-  coverLogo: {
-    fontSize: 28,
-    fontFamily: 'Helvetica-Bold',
+  coverEyebrow: {
+    fontFamily: FONT_BODY,
+    fontSize: 10,
     color: colors.gold,
-    marginBottom: 6,
+    letterSpacing: 4,
     textAlign: 'center',
+    marginTop: 90,
+  },
+  coverLogo: {
+    fontSize: 38,
+    fontFamily: FONT_DISPLAY,
+    color: colors.white,
+    marginBottom: 4,
+    textAlign: 'center',
+    letterSpacing: 4,
+  },
+  coverDivider: {
+    width: 60,
+    height: 2,
+    backgroundColor: colors.gold,
+    alignSelf: 'center',
+    marginVertical: 30,
+  },
+  coverTitle: {
+    fontSize: 32,
+    fontFamily: FONT_DISPLAY,
+    color: colors.white,
+    fontWeight: 400,
+    textAlign: 'center',
+    lineHeight: 1.2,
+    marginBottom: 10,
   },
   coverSubtitle: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.goldLight,
-    marginBottom: 50,
     textAlign: 'center',
     letterSpacing: 3,
   },
-  coverDivider: {
-    width: 80,
-    height: 2,
-    backgroundColor: colors.gold,
-    marginBottom: 50,
-  },
-  coverTitle: {
+  coverClient: {
     fontSize: 22,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.white,
-    marginBottom: 10,
+    fontFamily: FONT_DISPLAY,
+    fontStyle: 'italic',
+    color: colors.gold,
     textAlign: 'center',
-  },
-  coverClientName: {
-    fontSize: 18,
-    color: colors.goldLight,
-    marginBottom: 40,
-    textAlign: 'center',
+    marginTop: 50,
+    marginBottom: 6,
   },
   coverDate: {
     fontSize: 11,
-    color: colors.grayLight,
-    marginBottom: 8,
+    color: '#cad4e2',
+    marginBottom: 4,
     textAlign: 'center',
   },
   coverAdvisor: {
-    fontSize: 10,
-    color: colors.grayLight,
+    fontSize: 11,
+    color: '#cad4e2',
     textAlign: 'center',
-    marginTop: 2,
-  },
-  coverFooterBlock: {
-    position: 'absolute',
-    bottom: 40,
-    left: 50,
-    right: 50,
+    marginTop: 1,
   },
   coverDisclaimer: {
-    fontSize: 7,
-    color: colors.gray,
+    fontSize: 8,
+    color: '#8a98ad',
     textAlign: 'center',
-    lineHeight: 1.4,
+    lineHeight: 1.5,
+    marginHorizontal: 40,
   },
 
-  // ---- Header ----
+  // ---- Header / Footer ----
   header: {
     position: 'absolute',
     top: 0,
@@ -115,276 +153,272 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 40,
+    paddingHorizontal: 50,
   },
   headerBrand: {
-    fontSize: 10,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    fontFamily: FONT_DISPLAY,
     color: colors.gold,
+    letterSpacing: 2,
   },
   headerSection: {
-    fontSize: 9,
-    color: colors.grayLight,
+    fontSize: 10,
+    color: '#cad4e2',
+    fontFamily: FONT_BODY,
   },
-
-  // ---- Footer ----
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    height: 40,
-    borderTopWidth: 1,
+    height: 38,
+    borderTopWidth: 0.5,
     borderTopColor: colors.grayLight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 40,
+    paddingHorizontal: 50,
   },
   footerText: {
-    fontSize: 7,
+    fontSize: 9,
     color: colors.gray,
+    fontFamily: FONT_BODY,
   },
   pageNumber: {
-    fontSize: 7,
+    fontSize: 9,
     color: colors.gray,
+    fontFamily: FONT_BODY,
   },
 
-  // ---- Section Title ----
+  // ---- Page section title (the big top-of-page heading) ----
   sectionTitle: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 24,
+    fontFamily: FONT_DISPLAY,
     color: colors.navy,
+    marginTop: 4,
     marginBottom: 4,
+    letterSpacing: 0.4,
+  },
+  sectionEyebrow: {
+    fontSize: 9,
+    color: colors.gold,
+    letterSpacing: 3,
+    marginBottom: 4,
+    fontFamily: FONT_BODY,
+    fontWeight: 600,
   },
   sectionSubtitle: {
     fontSize: 10,
     color: colors.gray,
-    marginBottom: 14,
+    marginBottom: 16,
+    fontFamily: FONT_BODY,
+    lineHeight: 1.5,
+  },
+  goldDivider: {
+    height: 2,
+    backgroundColor: colors.gold,
+    marginBottom: 18,
+    width: 50,
   },
 
-  // ---- Titles / Text ----
-  title: {
-    fontSize: 14,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navy,
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 11,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navyLight,
-    marginBottom: 6,
-    marginTop: 12,
-  },
+  // ---- Body text ----
   text: {
-    fontSize: 9,
-    lineHeight: 1.5,
-    color: colors.black,
-    marginBottom: 4,
+    fontSize: 11,
+    lineHeight: 1.55,
+    color: colors.grayDark,
+    marginBottom: 6,
+    fontFamily: FONT_BODY,
   },
   textSmall: {
-    fontSize: 8,
-    lineHeight: 1.4,
+    fontSize: 10,
+    lineHeight: 1.5,
     color: colors.grayDark,
+    fontFamily: FONT_BODY,
   },
   bold: {
-    fontFamily: 'Helvetica-Bold',
+    fontWeight: 700,
   },
   italic: {
-    fontFamily: 'Helvetica-Oblique',
-  },
-  link: {
-    color: colors.blue,
-    textDecoration: 'underline',
+    fontStyle: 'italic',
   },
 
-  // ---- Summary Box ----
-  summaryBox: {
-    backgroundColor: colors.offWhite,
-    borderWidth: 1,
-    borderColor: colors.grayLight,
-    borderRadius: 4,
-    padding: 12,
-    marginBottom: 12,
+  // ---- Subhead (group label) ----
+  groupLabel: {
+    fontSize: 11,
+    fontFamily: FONT_BODY,
+    fontWeight: 700,
+    color: colors.navy,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 14,
+    marginBottom: 6,
+    paddingBottom: 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gold,
+    alignSelf: 'flex-start',
+    paddingRight: 12,
   },
+
+  // ---- Summary row (label : value) ----
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 3,
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#eef0f3',
   },
   summaryLabel: {
-    fontSize: 9,
+    fontSize: 11,
     color: colors.grayDark,
     flex: 1,
+    fontFamily: FONT_BODY,
   },
   summaryValue: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 11,
+    fontWeight: 600,
     color: colors.navy,
     textAlign: 'right',
+    fontFamily: FONT_BODY,
   },
 
-  // ---- Highlight Box ----
-  highlightBox: {
+  // ---- Hero number block (for the headline annuity etc.) ----
+  hero: {
     backgroundColor: colors.navy,
+    paddingVertical: 24,
+    paddingHorizontal: 28,
+    marginBottom: 18,
     borderRadius: 4,
-    padding: 14,
-    marginBottom: 12,
   },
-  highlightLabel: {
-    fontSize: 8,
+  heroLabel: {
+    fontSize: 10,
     color: colors.goldLight,
-    marginBottom: 2,
-  },
-  highlightValue: {
-    fontSize: 16,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.gold,
-  },
-
-  // ---- Comparison Boxes ----
-  comparisonRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-  comparisonBox: {
-    flex: 1,
-    backgroundColor: colors.offWhite,
-    borderWidth: 1,
-    borderColor: colors.grayLight,
-    borderRadius: 4,
-    padding: 10,
-  },
-  comparisonTitle: {
-    fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    color: colors.navy,
+    letterSpacing: 2.5,
+    fontFamily: FONT_BODY,
+    fontWeight: 600,
     marginBottom: 6,
   },
+  heroValue: {
+    fontSize: 42,
+    fontFamily: FONT_DISPLAY,
+    color: colors.gold,
+    lineHeight: 1.05,
+  },
+  heroCaption: {
+    fontSize: 10,
+    color: '#cad4e2',
+    marginTop: 6,
+    fontFamily: FONT_BODY,
+  },
 
-  // ---- Table ----
+  // ---- 3 metric tiles row ----
+  metricRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 16,
+  },
+  metricTile: {
+    flex: 1,
+    backgroundColor: colors.offWhite,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.gold,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  metricLabel: {
+    fontSize: 9,
+    color: colors.gray,
+    letterSpacing: 1.5,
+    fontFamily: FONT_BODY,
+    fontWeight: 600,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: 18,
+    fontFamily: FONT_DISPLAY,
+    fontWeight: 600,
+    color: colors.navy,
+  },
+
+  // ---- Tables ----
   table: {
     marginBottom: 12,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: colors.navy,
-    paddingVertical: 5,
+    paddingVertical: 7,
     paddingHorizontal: 4,
-    borderTopLeftRadius: 3,
-    borderTopRightRadius: 3,
   },
   tableHeaderCell: {
-    fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 9,
+    fontFamily: FONT_BODY,
+    fontWeight: 600,
     color: colors.white,
     textAlign: 'right',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
   },
   tableHeaderCellLeft: {
-    fontSize: 7.5,
-    fontFamily: 'Helvetica-Bold',
+    fontSize: 9,
+    fontFamily: FONT_BODY,
+    fontWeight: 600,
     color: colors.white,
     textAlign: 'left',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: colors.grayLight,
+    borderBottomColor: '#eef0f3',
   },
   tableRowAlt: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: colors.grayLight,
+    borderBottomColor: '#eef0f3',
     backgroundColor: colors.offWhite,
   },
   tableCell: {
-    fontSize: 8,
-    color: colors.black,
+    fontSize: 9.5,
+    color: colors.grayDark,
     textAlign: 'right',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    fontFamily: FONT_BODY,
   },
   tableCellLeft: {
-    fontSize: 8,
-    color: colors.black,
+    fontSize: 9.5,
+    color: colors.grayDark,
     textAlign: 'left',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
+    fontFamily: FONT_BODY,
   },
-  tableCellBold: {
-    fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
+
+  // ---- Pull-quote / promise ----
+  promise: {
+    backgroundColor: colors.goldPale,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.gold,
+    padding: 14,
+    marginVertical: 14,
+  },
+  promiseText: {
+    fontSize: 12,
+    fontFamily: FONT_DISPLAY,
+    fontStyle: 'italic',
     color: colors.navy,
-    textAlign: 'right',
-    paddingHorizontal: 3,
+    lineHeight: 1.45,
   },
 
-  // ---- Status / Badge ----
-  badge: {
-    fontSize: 7,
-    fontFamily: 'Helvetica-Bold',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 3,
-  },
-  badgeGreen: {
-    backgroundColor: '#D1FAE5',
-    color: colors.green,
-  },
-  badgeRed: {
-    backgroundColor: '#FEE2E2',
-    color: colors.red,
-  },
-  badgeGold: {
-    backgroundColor: colors.goldLight,
-    color: '#78600F',
-  },
-
-  // ---- Disclaimer ----
-  disclaimer: {
-    fontSize: 7.5,
-    color: colors.gray,
-    lineHeight: 1.5,
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 0.5,
-    borderTopColor: colors.grayLight,
-  },
-
-  // ---- Two Column Layout ----
-  twoCol: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  col: {
-    flex: 1,
-  },
-
-  // ---- Spacer ----
-  spacer: {
-    height: 10,
-  },
-  spacerLg: {
-    height: 20,
-  },
-
-  // ---- Divider ----
+  // ---- Spacer / Divider ----
+  spacer: { height: 12 },
+  spacerLg: { height: 24 },
   divider: {
     height: 1,
     backgroundColor: colors.grayLight,
-    marginVertical: 10,
-  },
-  goldDivider: {
-    height: 2,
-    backgroundColor: colors.gold,
-    marginVertical: 10,
-    width: 60,
+    marginVertical: 12,
   },
 });
 
