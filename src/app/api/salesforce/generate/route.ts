@@ -75,10 +75,18 @@ function validateIntakeData(data: Record<string, any>): {
   if (tspTotal === 0) warnings.push('TSP balances all zero — TSP statement may not have been parsed.');
 
   if (data.survivorElection == null) warnings.push('Survivor election not specified — defaulting to 50%.');
-  if (data.ssBenefitAge62 == null) warnings.push('Estimated Social Security benefit missing — defaulting to $1,500/mo.');
+  if (data.ssBenefitAge62 == null) warnings.push('Estimated Social Security benefit missing — assuming $0 until provided.');
   if (data.fegliBasic === false && !data.fegliOptionA && !data.fegliOptionB) {
     warnings.push('No FEGLI elections recorded — assuming no life insurance.');
   }
+  if (data.fehbBiweeklyPremium == null) warnings.push('FEHB biweekly premium missing — defaulting to OPM weighted average $200/biweekly.');
+  if (data.fehbIncreaseRate == null) warnings.push('FEHB premium increase rate missing — defaulting to 5%/yr (OPM 5-year average).');
+  if (data.annualSalaryIncreaseRate == null) warnings.push('Salary increase rate missing — defaulting to 2%/yr (FERS/CSRS COLA proxy).');
+  if (data.colaAdjustment == null) warnings.push('COLA assumption missing — defaulting to 2%.');
+  if (data.tspExpectedReturn == null && data.tspPerFundReturns == null) {
+    warnings.push('TSP expected return missing — defaulting to 7% blended.');
+  }
+  if (data.maritalStatus == null) warnings.push('Marital status missing — assuming SINGLE for survivor calc fallback.');
   if (data.aiParseConfidence != null && Number(data.aiParseConfidence) < 50) {
     warnings.push(`AI parse confidence is low (${data.aiParseConfidence}%) — verify all values with the client.`);
   }

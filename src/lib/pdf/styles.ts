@@ -58,9 +58,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.black,
     backgroundColor: colors.white,
-    paddingTop: 75,
-    paddingBottom: 55,
-    paddingHorizontal: 50,
+    paddingTop: 60,
+    paddingBottom: 40,
+    paddingHorizontal: 30,
     lineHeight: 1.45,
   },
 
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 50,
+    paddingHorizontal: 30,
   },
   headerBrand: {
     fontSize: 11,
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 50,
+    paddingHorizontal: 30,
   },
   footerText: {
     fontSize: 9,

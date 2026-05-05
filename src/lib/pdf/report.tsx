@@ -258,12 +258,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
     ]);
   }
 
-  // ---------- Page 4: Proposed & Delayed Retirement table ----------
-  // Columns = years from retirement (proposed) through delayed +11
-  // Show retirement at planned age + 5 delayed years. Wider tables can't
-  // fit a Letter page with the brand fonts and still keep labels on one line.
+  // ---------- Proposed & Delayed Retirement table ----------
+  // Show retirement at planned age + 7 delayed years (Ann's spec — at least
+  // 7 'what if' columns). Tighter margins now allow this to fit on Letter.
   const delayedAges: number[] = [];
-  for (let i = 0; i <= 5; i++) delayedAges.push(ageAtRetirement + i);
+  for (let i = 0; i <= 7; i++) delayedAges.push(ageAtRetirement + i);
 
   const high3 = result.annuity.high3Average;
   const fersIsEnhanced = (age: number, totalYrs: number) =>
@@ -483,11 +482,100 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
       </ReportPage>
 
       {/* ============================================================
-          PAGE 3 — FEDERAL EMPLOYEE BENEFITS SUMMARY
+          PAGE 3 — PROPOSED & DELAYED RETIREMENT
+          ============================================================ */}
+      <ReportPage brand={brand} phone={phone}>
+        <View style={{ paddingHorizontal: 30 }}>
+          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
+            Proposed &amp; Delayed Retirement
+          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
+
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
+          <SRow label="Retirement System" value={input.employment.retirementSystem} />
+          <SRow label="Employee Type" value={input.employment.employeeType} />
+          <SRow label="Retirement Type" value="REGULAR" />
+
+          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
+          <SRow label="Estimated High 3 Average At Retirement" value={fmt.currency(high3)} />
+          <SRow label="Estimated High 3 Increase / Year" value={fmt.pctWhole(salaryRate)} />
+          <SRow label="Length of Service at Retirement" value={String(civilianYears)} />
+          <SRow label="Months of Service at Retirement" value={String(civilianMonths)} />
+          <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
+          <SRow label="Total Hours of Unused Sick Leave" value={String(input.employment.sickLeaveHours)} />
+          <SRow label="COLA (in Retirement)" value={fmt.pctWhole(cola)} />
+          <SRow label={`${input.employment.retirementSystem} Survivor`}
+                value={survivorElection === '50_PERCENT' ? '50% Annuity' : survivorElection === '25_PERCENT' ? '25% Annuity' : 'None'} />
+
+          <Text style={[styles.groupLabel, { marginTop: 12 }]}>
+            "What If" Scenario Comparison — Retire Now vs. Each Year Delayed
+          </Text>
+          <Text style={{ fontSize: 9, color: colors.gray, marginBottom: 6, fontStyle: 'italic' }}>
+            First column is your planned retirement at age {ageAtRetirement}. Each subsequent column shows the impact of delaying retirement one additional year.
+          </Text>
+
+          {/* Row-major proposed/delayed table — labels left, values across.
+              Cells are uniform height so labels stay aligned with their row. */}
+          {(() => {
+            const rowDef: { label: string; get: (r: typeof delayedRows[number]) => string }[] = [
+              { label: 'Age', get: (r) => String(r.age) },
+              { label: 'Service Years', get: (r) => String(r.civYears) },
+              { label: 'Service Months', get: (r) => String(r.civMonths) },
+              { label: 'Sick Leave Months', get: (r) => String(r.slM) },
+              { label: 'High-3 Average', get: (r) => '$' + Math.round(r.projHigh3).toLocaleString() },
+              { label: 'Change in High-3', get: (r) => r.high3Change ? '$' + Math.round(r.high3Change).toLocaleString() : '—' },
+              { label: 'Annual Annuity (no survivor)', get: (r) => '$' + Math.round(r.annNoSurv).toLocaleString() },
+              { label: 'Monthly Annuity (no survivor)', get: (r) => '$' + Math.round(r.moNoSurv).toLocaleString() },
+              { label: 'Annual Annuity (with survivor)', get: (r) => '$' + Math.round(r.annWith).toLocaleString() },
+              { label: 'Monthly Annuity (with survivor)', get: (r) => '$' + Math.round(r.moWith).toLocaleString() },
+              { label: 'Annual Survivor Benefit', get: (r) => '$' + Math.round(r.annSurvBen).toLocaleString() },
+              { label: 'Monthly Survivor Benefit', get: (r) => '$' + Math.round(r.moSurvBen).toLocaleString() },
+              { label: 'Monthly Cost of Survivor', get: (r) => '$' + Math.round(r.moCostSurv).toLocaleString() },
+            ];
+            return (
+              <View wrap={false} style={{ marginTop: 6 }}>
+                {/* Header row */}
+                <View style={{ flexDirection: 'row', backgroundColor: colors.navy, paddingVertical: 6 }}>
+                  <Text style={{ flex: 3.0, paddingHorizontal: 5, fontSize: 8.5, color: colors.white, fontWeight: 700 }}>
+                    Scenario
+                  </Text>
+                  {delayedRows.map((r, i) => (
+                    <Text key={i} style={{ flex: 1, fontSize: 8.5, color: colors.white, fontWeight: 700, textAlign: 'center' }}>
+                      {i === 0 ? `Retire @ ${r.age}` : `+${i}y`}
+                    </Text>
+                  ))}
+                </View>
+                {rowDef.map((row, ri) => (
+                  <View key={ri}
+                    style={{
+                      flexDirection: 'row',
+                      paddingVertical: 4,
+                      backgroundColor: ri % 2 === 1 ? colors.offWhite : colors.white,
+                      borderBottomWidth: 0.5,
+                      borderBottomColor: '#eef0f3',
+                    }}>
+                    <Text style={{ flex: 3.0, paddingHorizontal: 5, fontSize: 8.5, color: colors.grayDark }}>
+                      {row.label}
+                    </Text>
+                    {delayedRows.map((r, ci) => (
+                      <Text key={ci} style={{ flex: 1, fontSize: 8.5, color: ci === 0 ? colors.navy : colors.grayDark, fontWeight: ci === 0 ? 700 : 400, textAlign: 'right', paddingHorizontal: 4 }}>
+                        {row.get(r)}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
+        </View>
+      </ReportPage>
+
+      {/* ============================================================
+          PAGE 4 — FEDERAL EMPLOYEE BENEFIT SUMMARY OF INPUTS
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
         <Text style={styles.sectionEyebrow}>YOUR PLAN AT A GLANCE</Text>
-        <Text style={styles.sectionTitle}>Federal Employee Benefits Summary</Text>
+        <Text style={styles.sectionTitle}>Federal Employee Benefit Summary of Inputs</Text>
         <View style={styles.goldDivider} />
 
         {/* HERO — the headline annuity (Belfort straight line: lead with the answer) */}
@@ -559,95 +647,6 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
             <SRow label="Eligibility" value="Service & Age met" />
           </View>
-        </View>
-      </ReportPage>
-
-      {/* ============================================================
-          PAGE 4 — PROPOSED & DELAYED RETIREMENT
-          ============================================================ */}
-      <ReportPage brand={brand} phone={phone}>
-        <View style={{ paddingHorizontal: 30 }}>
-          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
-            Proposed &amp; Delayed Retirement
-          </Text>
-          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
-
-          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
-          <SRow label="Retirement System" value={input.employment.retirementSystem} />
-          <SRow label="Employee Type" value={input.employment.employeeType} />
-          <SRow label="Retirement Type" value="REGULAR" />
-
-          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
-          <SRow label="Estimated High 3 Average At Retirement" value={fmt.currency(high3)} />
-          <SRow label="Estimated High 3 Increase / Year" value={fmt.pctWhole(salaryRate)} />
-          <SRow label="Length of Service at Retirement" value={String(civilianYears)} />
-          <SRow label="Months of Service at Retirement" value={String(civilianMonths)} />
-          <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
-          <SRow label="Total Hours of Unused Sick Leave" value={String(input.employment.sickLeaveHours)} />
-          <SRow label="COLA (in Retirement)" value={fmt.pctWhole(cola)} />
-          <SRow label={`${input.employment.retirementSystem} Survivor`}
-                value={survivorElection === '50_PERCENT' ? '50% Annuity' : survivorElection === '25_PERCENT' ? '25% Annuity' : 'None'} />
-
-          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 10 }}>
-            Proposed and Delayed Retirement Data
-          </Text>
-
-          {/* Row-major proposed/delayed table — labels left, values across.
-              Cells are uniform height so labels stay aligned with their row. */}
-          {(() => {
-            const rowDef: { label: string; get: (r: typeof delayedRows[number]) => string }[] = [
-              { label: 'Age', get: (r) => String(r.age) },
-              { label: 'Service Years', get: (r) => String(r.civYears) },
-              { label: 'Service Months', get: (r) => String(r.civMonths) },
-              { label: 'Sick Leave Months', get: (r) => String(r.slM) },
-              { label: 'High-3 Average', get: (r) => '$' + Math.round(r.projHigh3).toLocaleString() },
-              { label: 'Change in High-3', get: (r) => r.high3Change ? '$' + Math.round(r.high3Change).toLocaleString() : '—' },
-              { label: 'Annual Annuity (no survivor)', get: (r) => '$' + Math.round(r.annNoSurv).toLocaleString() },
-              { label: 'Monthly Annuity (no survivor)', get: (r) => '$' + Math.round(r.moNoSurv).toLocaleString() },
-              { label: 'Annual Annuity (with survivor)', get: (r) => '$' + Math.round(r.annWith).toLocaleString() },
-              { label: 'Monthly Annuity (with survivor)', get: (r) => '$' + Math.round(r.moWith).toLocaleString() },
-              { label: 'Annual Survivor Benefit', get: (r) => '$' + Math.round(r.annSurvBen).toLocaleString() },
-              { label: 'Monthly Survivor Benefit', get: (r) => '$' + Math.round(r.moSurvBen).toLocaleString() },
-              { label: 'Monthly Cost of Survivor', get: (r) => '$' + Math.round(r.moCostSurv).toLocaleString() },
-            ];
-            return (
-              <View wrap={false} style={{ marginTop: 6 }}>
-                {/* Header row */}
-                <View style={{ flexDirection: 'row', backgroundColor: colors.navy, paddingVertical: 6 }}>
-                  <Text style={{ flex: 3.4, paddingHorizontal: 6, fontSize: 8.5, color: colors.white, fontWeight: 700 }}>
-                    Scenario
-                  </Text>
-                  {delayedRows.map((r, i) => (
-                    <Text key={i} style={{ flex: 1, fontSize: 8.5, color: colors.white, fontWeight: 700, textAlign: 'center' }}>
-                      {i === 0 ? `Retire @ ${r.age}` : `+${i}y`}
-                    </Text>
-                  ))}
-                </View>
-                {rowDef.map((row, ri) => (
-                  <View key={ri}
-                    style={{
-                      flexDirection: 'row',
-                      paddingVertical: 4,
-                      backgroundColor: ri % 2 === 1 ? colors.offWhite : colors.white,
-                      borderBottomWidth: 0.5,
-                      borderBottomColor: '#eef0f3',
-                    }}>
-                    <Text style={{ flex: 3.4, paddingHorizontal: 6, fontSize: 8.5, color: colors.grayDark }}>
-                      {row.label}
-                    </Text>
-                    {delayedRows.map((r, ci) => (
-                      <Text key={ci} style={{ flex: 1, fontSize: 8.5, color: ci === 0 ? colors.navy : colors.grayDark, fontWeight: ci === 0 ? 700 : 400, textAlign: 'right', paddingHorizontal: 4 }}>
-                        {row.get(r)}
-                      </Text>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            );
-          })()}
-          <Text style={{ fontSize: 9, marginTop: 8, color: colors.gray, fontStyle: 'normal' }}>
-            First column = your planned retirement at age {ageAtRetirement}. Subsequent columns show what happens if you delay each additional year.
-          </Text>
         </View>
       </ReportPage>
 
