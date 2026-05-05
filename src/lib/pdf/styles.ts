@@ -8,24 +8,20 @@ import { StyleSheet, Font } from '@react-pdf/renderer';
 // ---- Register brand fonts (Cormorant Garamond + Geist via Google Fonts) ----
 // @react-pdf supports remote font URLs. We pull the same families used on
 // capitalwealth.com so PDFs visually match the website.
+// Cormorant Garamond TTF URLs pulled from Google Fonts CSS API (v21).
+// Match what capitalwealth.com loads on its site.
 Font.register({
   family: 'Cormorant Garamond',
   fonts: [
-    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3bmX5slCNuHLi8bLeY9MK7whWMhyjornFLsS6V7w.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3YmX5slCNuHLi8bLeY9MK7whWMhyjYrEPjsSqVwQ.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v16/co3WmX5slCNuHLi8bLeY9MK7whWMhyjQAllvuQWJ5hI.ttf', fontWeight: 400, fontStyle: 'italic' },
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_v86GnM.ttf', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_iE9GnM.ttf', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/cormorantgaramond/v21/co3smX5slCNuHLi8bLeY9MK7whWMhyjYrGFEsdtdc62E6zd58jDOjw.ttf', fontWeight: 400, fontStyle: 'italic' },
   ],
 });
 
-Font.register({
-  family: 'Manrope',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRggexSg.ttf', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgmxSg.ttf', fontWeight: 500 },
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgvxSg.ttf', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/manrope/v15/xn7gYHE41ni1AdIRgsBSg.ttf', fontWeight: 700 },
-  ],
-});
+// Body sans uses @react-pdf's built-in Helvetica family — no remote font
+// fetch required (Manrope/Geist are not reliably available as TTFs from
+// Google Fonts' v2 CDN, and missing italic variants caused crashes).
 
 // Brand palette — matches capitalwealth.com CSS variables.
 export const colors = {
@@ -50,7 +46,9 @@ export const colors = {
 };
 
 // Typography — bigger than before so the report is comfortable to read.
-const FONT_BODY = 'Manrope';
+// Body uses Helvetica (built into @react-pdf, zero-fetch). Display uses
+// Cormorant Garamond from Google Fonts to match capitalwealth.com.
+const FONT_BODY = 'Helvetica';
 const FONT_DISPLAY = 'Cormorant Garamond';
 
 const styles = StyleSheet.create({
