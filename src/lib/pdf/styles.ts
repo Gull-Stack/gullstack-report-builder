@@ -194,8 +194,9 @@ const styles = StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     color: colors.navy,
     marginTop: 4,
-    marginBottom: 4,
+    marginBottom: 12,
     letterSpacing: 0.4,
+    lineHeight: 1.15,
   },
   sectionEyebrow: {
     fontSize: 9,

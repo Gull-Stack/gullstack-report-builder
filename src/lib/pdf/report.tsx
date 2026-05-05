@@ -260,8 +260,10 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
 
   // ---------- Page 4: Proposed & Delayed Retirement table ----------
   // Columns = years from retirement (proposed) through delayed +11
+  // Show retirement at planned age + 7 delayed years. Wider tables don't fit
+  // a Letter page once the brand fonts are in play.
   const delayedAges: number[] = [];
-  for (let i = 0; i <= 11; i++) delayedAges.push(ageAtRetirement + i);
+  for (let i = 0; i <= 7; i++) delayedAges.push(ageAtRetirement + i);
 
   const high3 = result.annuity.high3Average;
   const fersIsEnhanced = (age: number, totalYrs: number) =>
@@ -565,9 +567,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Proposed &amp; Delayed Retirement
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
           <SRow label="Retirement System" value={input.employment.retirementSystem} />
@@ -589,45 +589,61 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             Proposed and Delayed Retirement Data
           </Text>
 
-          {/* Compact wide table — use small font + many cols */}
-          <View style={{ flexDirection: 'row', marginTop: 4 }}>
-            <View style={{ width: '20%' }}>
-              {[
-                'Age In Years', 'Service Years', 'Service Months', 'Sick Leave Months',
-                'Estimated High 3 Average ($)', 'Change in High 3 Average ($)',
-                'Annual ANNUITY (Before Penalties) ($)',
-                'Annual Annuity No Survivor ($)', 'Monthly Annuity No Survivor ($)',
-                'Annual Annuity With Survivor ($)', 'Monthly Annuity With Survivor ($)',
-                'Annual Survivor Annuity ($)', 'Monthly Survivor Annuity ($)',
-                'Annual Cost of Survivor Annuity ($)', 'Monthly Cost of Survivor Annuity ($)',
-              ].map((l, i) => (
-                <Text key={i} style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>
-                  {l}
-                </Text>
-              ))}
-            </View>
-            {delayedRows.map((r, idx) => (
-              <View key={idx} style={{ flex: 1, alignItems: 'center', backgroundColor: idx === 0 ? '#fff' : (idx % 2 ? '#f7f7f7' : '#fff') }}>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.age}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.civYears}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.civMonths}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.slM}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.projHigh3).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{r.high3Change ? Math.round(r.high3Change).toLocaleString() : ''}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moNoSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annWith).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moWith).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annSurvBen).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moSurvBen).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.annCostSurv).toLocaleString()}</Text>
-                <Text style={{ fontSize: 7.5, paddingVertical: 2.5, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb', color: colors.grayDark }}>{Math.round(r.moCostSurv).toLocaleString()}</Text>
+          {/* Row-major proposed/delayed table — labels left, values across.
+              Cells are uniform height so labels stay aligned with their row. */}
+          {(() => {
+            const rowDef: { label: string; get: (r: typeof delayedRows[number]) => string }[] = [
+              { label: 'Age', get: (r) => String(r.age) },
+              { label: 'Service Years', get: (r) => String(r.civYears) },
+              { label: 'Service Months', get: (r) => String(r.civMonths) },
+              { label: 'Sick Leave Months', get: (r) => String(r.slM) },
+              { label: 'High-3 Average', get: (r) => '$' + Math.round(r.projHigh3).toLocaleString() },
+              { label: 'Δ High-3', get: (r) => r.high3Change ? '$' + Math.round(r.high3Change).toLocaleString() : '—' },
+              { label: 'Annual Annuity (no survivor)', get: (r) => '$' + Math.round(r.annNoSurv).toLocaleString() },
+              { label: 'Monthly Annuity (no survivor)', get: (r) => '$' + Math.round(r.moNoSurv).toLocaleString() },
+              { label: 'Annual Annuity (with survivor)', get: (r) => '$' + Math.round(r.annWith).toLocaleString() },
+              { label: 'Monthly Annuity (with survivor)', get: (r) => '$' + Math.round(r.moWith).toLocaleString() },
+              { label: 'Annual Survivor Benefit', get: (r) => '$' + Math.round(r.annSurvBen).toLocaleString() },
+              { label: 'Monthly Survivor Benefit', get: (r) => '$' + Math.round(r.moSurvBen).toLocaleString() },
+              { label: 'Monthly Cost of Survivor', get: (r) => '$' + Math.round(r.moCostSurv).toLocaleString() },
+            ];
+            return (
+              <View style={{ marginTop: 6 }}>
+                {/* Header row */}
+                <View style={{ flexDirection: 'row', backgroundColor: colors.navy, paddingVertical: 6 }}>
+                  <Text style={{ flex: 2.6, paddingHorizontal: 6, fontSize: 8.5, color: colors.white, fontWeight: 700 }}>
+                    Scenario
+                  </Text>
+                  {delayedRows.map((r, i) => (
+                    <Text key={i} style={{ flex: 1, fontSize: 8.5, color: colors.white, fontWeight: 700, textAlign: 'center' }}>
+                      {i === 0 ? `Retire @ ${r.age}` : `+${i}y`}
+                    </Text>
+                  ))}
+                </View>
+                {rowDef.map((row, ri) => (
+                  <View key={ri}
+                    style={{
+                      flexDirection: 'row',
+                      paddingVertical: 4,
+                      backgroundColor: ri % 2 === 1 ? colors.offWhite : colors.white,
+                      borderBottomWidth: 0.5,
+                      borderBottomColor: '#eef0f3',
+                    }}>
+                    <Text style={{ flex: 2.6, paddingHorizontal: 6, fontSize: 8.5, color: colors.grayDark }}>
+                      {row.label}
+                    </Text>
+                    {delayedRows.map((r, ci) => (
+                      <Text key={ci} style={{ flex: 1, fontSize: 8.5, color: ci === 0 ? colors.navy : colors.grayDark, fontWeight: ci === 0 ? 700 : 400, textAlign: 'right', paddingHorizontal: 4 }}>
+                        {row.get(r)}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-          <Text style={{ fontSize: 7, marginTop: 4, color: '#666' }}>
-            Proposed Retirement = Age {ageAtRetirement}; remaining columns = delayed retirement at each subsequent age.
+            );
+          })()}
+          <Text style={{ fontSize: 9, marginTop: 8, color: colors.gray, fontStyle: 'normal' }}>
+            First column = your planned retirement at age {ageAtRetirement}. Subsequent columns show what happens if you delay each additional year.
           </Text>
         </View>
       </ReportPage>
@@ -640,9 +656,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Retirement Annuity and Surviving Spouse Benefit
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
           <Text style={{ fontSize: 9, marginBottom: 6 }}>
             <Text style={{ textDecoration: 'underline' }}>Benefits Data</Text>
           </Text>
@@ -699,9 +713,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Traditional Savings</Text>
           <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
@@ -747,9 +759,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 6 }}>
             Summary of Annual Contributions and Savings: {tspTrad[0]?.year} to {tspTrad[tspTrad.length - 1]?.year}
@@ -789,9 +799,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Roth Savings</Text>
           <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
             There are six separate funds (G, F, C, S, I, and L) in which to accumulate savings. At this time you have accumulated{' '}
@@ -836,9 +844,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - ROTH Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           {input.tsp.annualContributionRoth > 0 || input.tsp.rothBalances.some(b => b.balance > 0) ? (
             <DataTable
@@ -878,9 +884,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Group Life Insurance
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Summary as of {format(new Date(), 'MMM-dd-yyyy')}</Text>
           <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginTop: 4, marginBottom: 10 }}>
@@ -948,9 +952,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Health Benefit Program
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
           <Text style={{ fontSize: 10, marginTop: 4 }}>Calculations based on current Health Insurance premium of:</Text>
           <Text style={{ fontSize: 10, marginLeft: 8 }}>Biweekly = {fmt.currency(fehbBiweekly)}</Text>
@@ -982,9 +984,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             FERS Supplement and Estimated Social Security Benefits
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
-            All figures are hypothetical and based on the information provided.
-          </Text>
+          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
           <Text style={{ fontSize: 9, marginBottom: 6, textDecoration: 'underline' }}>Benefits Data</Text>
           <Text style={{ fontSize: 9, marginBottom: 12 }}>
             Calculations based on a FERS Annuity COLA of {fmt.pctWhole(cola)} and a Social Security COLA of {fmt.pctWhole(cola)}.
