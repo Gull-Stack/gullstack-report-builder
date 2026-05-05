@@ -485,34 +485,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           PAGE 3 — PROPOSED & DELAYED RETIREMENT
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
-        <View style={{ paddingHorizontal: 30 }}>
-          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
-            Proposed &amp; Delayed Retirement
-          </Text>
-          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
+        <Text style={styles.sectionEyebrow}>WHAT-IF SCENARIO COMPARISON</Text>
+        <Text style={styles.sectionTitle}>Proposed &amp; Delayed Retirement</Text>
+        <View style={styles.goldDivider} />
 
-          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Retirement Characterization</Text>
-          <SRow label="Retirement System" value={input.employment.retirementSystem} />
-          <SRow label="Employee Type" value={input.employment.employeeType} />
-          <SRow label="Retirement Type" value="REGULAR" />
-
-          <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginTop: 8 }}>Input Data</Text>
-          <SRow label="Estimated High 3 Average At Retirement" value={fmt.currency(high3)} />
-          <SRow label="Estimated High 3 Increase / Year" value={fmt.pctWhole(salaryRate)} />
-          <SRow label="Length of Service at Retirement" value={String(civilianYears)} />
-          <SRow label="Months of Service at Retirement" value={String(civilianMonths)} />
-          <SRow label="Age at Retirement" value={String(ageAtRetirement)} />
-          <SRow label="Total Hours of Unused Sick Leave" value={String(input.employment.sickLeaveHours)} />
-          <SRow label="COLA (in Retirement)" value={fmt.pctWhole(cola)} />
-          <SRow label={`${input.employment.retirementSystem} Survivor`}
-                value={survivorElection === '50_PERCENT' ? '50% Annuity' : survivorElection === '25_PERCENT' ? '25% Annuity' : 'None'} />
-
-          <Text style={[styles.groupLabel, { marginTop: 12 }]}>
-            "What If" Scenario Comparison — Retire Now vs. Each Year Delayed
-          </Text>
-          <Text style={{ fontSize: 9, color: colors.gray, marginBottom: 6, fontStyle: 'italic' }}>
-            First column is your planned retirement at age {ageAtRetirement}. Each subsequent column shows the impact of delaying retirement one additional year.
-          </Text>
+        <Text style={{ fontSize: 11, color: colors.grayDark, marginBottom: 14, lineHeight: 1.5 }}>
+          The first column shows your planned retirement at age <Text style={{ fontWeight: 700, color: colors.navy }}>{ageAtRetirement}</Text>.
+          Each subsequent column shows the impact of delaying retirement one additional year — letting you and your advisor weigh the
+          tradeoff between leaving sooner and earning a larger annuity by waiting.
+        </Text>
 
           {/* Row-major proposed/delayed table — labels left, values across.
               Cells are uniform height so labels stay aligned with their row. */}
@@ -567,7 +548,6 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
               </View>
             );
           })()}
-        </View>
       </ReportPage>
 
       {/* ============================================================
