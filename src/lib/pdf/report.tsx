@@ -260,10 +260,10 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
 
   // ---------- Page 4: Proposed & Delayed Retirement table ----------
   // Columns = years from retirement (proposed) through delayed +11
-  // Show retirement at planned age + 7 delayed years. Wider tables don't fit
-  // a Letter page once the brand fonts are in play.
+  // Show retirement at planned age + 5 delayed years. Wider tables can't
+  // fit a Letter page with the brand fonts and still keep labels on one line.
   const delayedAges: number[] = [];
-  for (let i = 0; i <= 7; i++) delayedAges.push(ageAtRetirement + i);
+  for (let i = 0; i <= 5; i++) delayedAges.push(ageAtRetirement + i);
 
   const high3 = result.annuity.high3Average;
   const fersIsEnhanced = (age: number, totalYrs: number) =>
@@ -523,8 +523,11 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
         <SRow label="Spouse's Survivor Benefit" value={`${fmt.currencyWhole(survivorMonthlyBenefit)}/mo`} />
         <SRow label="Cost of Survivor Election" value={`${fmt.currencyWhole(monthlySurvivorCost)}/mo`} />
 
-        {/* Personal + Employment + Retirement details — two columns for density */}
-        <View style={{ flexDirection: 'row', gap: 18, marginTop: 6 }}>
+        {/* Personal + Employment + Retirement details — two columns for density.
+            wrap={false} keeps the entire block on one page; if it doesn't fit
+            after the hero/tiles/survivor, it cleanly flows to page 4 rather
+            than splitting mid-column. */}
+        <View wrap={false} style={{ flexDirection: 'row', gap: 18, marginTop: 6 }}>
           <View style={{ flex: 1 }}>
             <Text style={styles.groupLabel}>PERSONAL</Text>
             <SRow label="Name" value={input.personal.fullName} />
@@ -608,10 +611,10 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
               { label: 'Monthly Cost of Survivor', get: (r) => '$' + Math.round(r.moCostSurv).toLocaleString() },
             ];
             return (
-              <View style={{ marginTop: 6 }}>
+              <View wrap={false} style={{ marginTop: 6 }}>
                 {/* Header row */}
                 <View style={{ flexDirection: 'row', backgroundColor: colors.navy, paddingVertical: 6 }}>
-                  <Text style={{ flex: 2.6, paddingHorizontal: 6, fontSize: 8.5, color: colors.white, fontWeight: 700 }}>
+                  <Text style={{ flex: 3.4, paddingHorizontal: 6, fontSize: 8.5, color: colors.white, fontWeight: 700 }}>
                     Scenario
                   </Text>
                   {delayedRows.map((r, i) => (
@@ -629,7 +632,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
                       borderBottomWidth: 0.5,
                       borderBottomColor: '#eef0f3',
                     }}>
-                    <Text style={{ flex: 2.6, paddingHorizontal: 6, fontSize: 8.5, color: colors.grayDark }}>
+                    <Text style={{ flex: 3.4, paddingHorizontal: 6, fontSize: 8.5, color: colors.grayDark }}>
                       {row.label}
                     </Text>
                     {delayedRows.map((r, ci) => (
