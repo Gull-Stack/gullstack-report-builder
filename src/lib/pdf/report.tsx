@@ -1,5 +1,5 @@
 // ============================================================
-// Federal Employee Benefits Analysis — PDF Document
+// Federal Benefits Gap Analysis — PDF Document
 // Mirrors the legacy 13-page Capital Wealth Federal Analysis report.
 // ============================================================
 
@@ -384,7 +384,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
 
   return (
     <Document
-      title={`Federal Employee Benefits Analysis — ${input.personal.fullName}`}
+      title={`Federal Benefits Gap Analysis — ${input.personal.fullName}`}
       author={brand}
     >
       {/* ============================================================
@@ -402,7 +402,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
         <View style={styles.coverDivider} />
 
         <Text style={styles.coverTitle}>
-          Federal Employee{'\n'}Benefits Analysis
+          Federal Benefits{'\n'}Gap Analysis
         </Text>
 
         <Text style={[styles.coverSubtitle, { marginTop: 14 }]}>
