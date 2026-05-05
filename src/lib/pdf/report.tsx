@@ -764,6 +764,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           </Text>
           <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
 
+          <View style={{ borderWidth: 1, borderColor: colors.gold, padding: 8, marginBottom: 10 }}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', marginBottom: 3 }}>
+              Best-Case Scenario — No Losses Modeled
+            </Text>
+            <Text style={{ fontSize: 9.5, lineHeight: 1.45 }}>
+              The figures below assume the 10-year historical average return for each fund and that the market never goes down. No years of negative return are reflected. Real markets do not move in a straight line. Use this table as a ceiling, not a forecast.
+            </Text>
+          </View>
+
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline', marginBottom: 6 }}>
             Summary of Annual Contributions and Savings: {tspTrad[0]?.year} to {tspTrad[tspTrad.length - 1]?.year}
           </Text>
@@ -848,6 +857,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             Thrift Savings Plan - ROTH Contributions and Hypothetical Savings
           </Text>
           <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
+
+          <View style={{ borderWidth: 1, borderColor: colors.gold, padding: 8, marginBottom: 10 }}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', marginBottom: 3 }}>
+              Best-Case Scenario — No Losses Modeled
+            </Text>
+            <Text style={{ fontSize: 9.5, lineHeight: 1.45 }}>
+              The figures below assume the 10-year historical average return for each fund and that the market never goes down. Real markets do not move in a straight line. Use this table as a ceiling, not a forecast.
+            </Text>
+          </View>
 
           {input.tsp.annualContributionRoth > 0 || input.tsp.rothBalances.some(b => b.balance > 0) ? (
             <DataTable
