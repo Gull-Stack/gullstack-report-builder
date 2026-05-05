@@ -21,17 +21,36 @@ export interface ServiceBreakdown {
 }
 
 /**
- * Convert sick leave hours to years and months.
- * OPM uses 2087 hours per year (174.25 hours per month).
+ * Convert sick leave hours to creditable service per OPM's published "2087
+ * Hour Chart" (CSRS/FERS Handbook ch. 50, Appendix).
+ *
+ * The chart treats 174 hours as 1 month and ~5.797 hours as 1 day. We compute:
+ *   months = floor(hours / 174)
+ *   remainderHours = hours mod 174
+ *   days = round(remainderHours / 5.797)
+ *
+ * OPM drops fractional months from total service, so days are only shown for
+ * audit purposes and do not affect the annuity multiplier. Years/months are
+ * what the multiplier reads.
  */
+const OPM_HOURS_PER_MONTH = 174;
+const OPM_HOURS_PER_DAY = 5.797;
+
 export function sickLeaveToCredit(hours: number): {
   years: number;
   months: number;
+  days: number;
 } {
-  const totalMonths = Math.floor(hours / (2087 / 12));
+  if (!Number.isFinite(hours) || hours <= 0) {
+    return { years: 0, months: 0, days: 0 };
+  }
+  const totalMonths = Math.floor(hours / OPM_HOURS_PER_MONTH);
+  const remainderHours = hours - totalMonths * OPM_HOURS_PER_MONTH;
+  const days = Math.round(remainderHours / OPM_HOURS_PER_DAY);
   return {
     years: Math.floor(totalMonths / 12),
     months: totalMonths % 12,
+    days,
   };
 }
 

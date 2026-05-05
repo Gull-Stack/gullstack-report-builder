@@ -56,6 +56,34 @@ export function isSupplementEligible(
 }
 
 /**
+ * SSA earnings test limit applied to the FERS Supplement. Per OPM § 8421a,
+ * the supplement is reduced $1 for every $2 of earned income over the SSA
+ * "Annual Earnings Test" limit for retirees under FRA. SSA publishes the
+ * limit annually (2024 = $22,320; 2025 = $23,400). Updated yearly.
+ */
+export const SSA_EARNINGS_TEST_LIMIT_2025 = 23400;
+
+/**
+ * Apply the earnings test to a monthly supplement amount.
+ *
+ * @param monthlyAmount  Pre-test monthly supplement
+ * @param annualEarnedIncome  Retiree's total earned (W-2/SE) income in the year
+ * @param earningsLimit  SSA earnings limit for that year (defaults to 2025)
+ * @returns Reduced monthly supplement (never below zero)
+ */
+export function applyEarningsTest(
+  monthlyAmount: number,
+  annualEarnedIncome: number,
+  earningsLimit: number = SSA_EARNINGS_TEST_LIMIT_2025,
+): number {
+  if (annualEarnedIncome <= earningsLimit) return monthlyAmount;
+  const excess = annualEarnedIncome - earningsLimit;
+  const annualReduction = excess / 2;
+  const monthlyReduction = annualReduction / 12;
+  return Math.max(monthlyAmount - monthlyReduction, 0);
+}
+
+/**
  * Calculate the FERS Supplement.
  *
  * @param estimatedSSAt62 - Monthly Social Security benefit estimated at age 62
@@ -64,6 +92,8 @@ export function isSupplementEligible(
  * @param retirementDate - Planned retirement date (ISO string)
  * @param retirementSystem - Must be FERS or FERS_TRANSFER
  * @param isMraPlus10 - Whether this is an MRA+10 early retirement
+ * @param annualEarnedIncome - Optional post-retirement W-2/SE income; if
+ *        provided, the SSA earnings test is applied
  * @returns FersSupplementResult
  */
 export function calculateFersSupplement(
@@ -72,7 +102,8 @@ export function calculateFersSupplement(
   dateOfBirth: string,
   retirementDate: string,
   retirementSystem: RetirementSystem,
-  isMraPlus10: boolean
+  isMraPlus10: boolean,
+  annualEarnedIncome: number = 0,
 ): FersSupplementResult {
   const dob = parseISO(dateOfBirth);
   const retirement = parseISO(retirementDate);
@@ -97,11 +128,12 @@ export function calculateFersSupplement(
     };
   }
 
-  // Supplement = estimated SS at 62 × (FERS years / 40)
-  // Capped: service years used cannot exceed 40
+  // Supplement = estimated SS at 62 × (FERS years / 40), capped at 40 yrs.
   const cappedYears = Math.min(fersServiceYears, 40);
-  const monthlyAmount =
-    Math.round(estimatedSSAt62 * (cappedYears / 40) * 100) / 100;
+  const grossMonthly = estimatedSSAt62 * (cappedYears / 40);
+  const adjusted = applyEarningsTest(grossMonthly, annualEarnedIncome);
+
+  const monthlyAmount = Math.round(adjusted * 100) / 100;
   const annualAmount = Math.round(monthlyAmount * 12 * 100) / 100;
 
   return {

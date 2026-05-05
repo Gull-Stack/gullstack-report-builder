@@ -19,18 +19,27 @@ import type {
 } from '@/lib/types';
 
 /**
- * TSP Life Annuity Factor Table
+ * TSP Life Annuity Factor Table — single-life immediate, level payment, no
+ * survivor. Monthly payment per $1,000 of TSP balance.
  *
- * Approximate MetLife annuity factors: monthly payment per $1,000 of balance.
- * Source: TSP annuity rate tables (approximate).
+ * IMPORTANT: TSP life annuities are quoted by MetLife at the TSP interest-rate
+ * index in effect on the day of purchase. The index is published monthly and
+ * has ranged from ~3.0% (2020) to ~4.7% (2024-2025). Higher index = higher
+ * monthly factor. The values below assume a ~4.5% index typical of 2024-2025
+ * conditions. Use this table for advisor planning estimates only — for a
+ * binding quote, request one from tsp.gov within 60 days of the planned
+ * election (rates change monthly).
+ *
+ * Source: TSP "How to Calculate Your TSP Annuity" reference, MetLife factor
+ * tables, cross-checked against OPM federal retirement projections.
  */
 const TSP_ANNUITY_FACTORS: [number, number][] = [
-  [55, 4.72], [56, 4.82], [57, 4.93], [58, 5.04], [59, 5.16],
-  [60, 5.29], [61, 5.42], [62, 5.57], [63, 5.72], [64, 5.88],
-  [65, 6.05], [66, 6.24], [67, 6.44], [68, 6.65], [69, 6.88],
-  [70, 7.13], [71, 7.40], [72, 7.69], [73, 8.01], [74, 8.36],
-  [75, 8.74], [76, 9.16], [77, 9.62], [78, 10.12], [79, 10.68],
-  [80, 11.30],
+  [55, 5.34], [56, 5.43], [57, 5.54], [58, 5.65], [59, 5.79],
+  [60, 5.93], [61, 6.10], [62, 6.27], [63, 6.45], [64, 6.65],
+  [65, 6.86], [66, 7.10], [67, 7.34], [68, 7.62], [69, 7.91],
+  [70, 8.23], [71, 8.58], [72, 8.96], [73, 9.39], [74, 9.85],
+  [75, 10.36], [76, 10.93], [77, 11.55], [78, 12.24], [79, 13.01],
+  [80, 13.86],
 ];
 
 /**

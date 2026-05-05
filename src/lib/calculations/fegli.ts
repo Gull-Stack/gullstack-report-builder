@@ -55,69 +55,135 @@ export function calculateOptionCCoverage(multiple: number): number {
   return 5000 * Math.min(Math.max(multiple, 1), 5);
 }
 
-// ---- OPM Published Biweekly Rate Tables (per $1,000 of coverage) ----
-// These are the 2024 OPM-published biweekly premium rates.
+// ---- OPM-Published FEGLI Premium Rates ----
+// Source: opm.gov/healthcare-insurance/life-insurance/program-information/tabs/historical-rates/
+// Verified: 2025-05-05. Active employee rates published as biweekly (26 pay periods);
+// annuitant rates published as monthly. We store both at OPM's published cadence
+// and convert when needed.
+
+/** Active employee Basic — biweekly cost per $1,000 of coverage (employee share). */
+const BASIC_BIWEEKLY_RATE_PER_1000_ACTIVE = 0.16;
 
 /**
- * Basic FEGLI biweekly rate per $1,000 of coverage.
- * The rate is $0.15 per $1,000 biweekly for all ages (employee pays 2/3, government pays 1/3).
- * Effective employee cost = $0.15 per $1,000 biweekly (post-retirement: full $0.3250).
+ * Annuitant (retiree) Basic — MONTHLY cost per $1,000 of coverage, by reduction
+ * tier, before vs. after the month following the 65th birthday.
+ *
+ * Per 5 USC § 8714 and OPM's published rate table:
+ *   Until age 65 (charged):
+ *     75% Reduction: $0.3467/mo per $1,000  (most common election)
+ *     50% Reduction: $1.0967/mo per $1,000
+ *     No Reduction:  $2.5967/mo per $1,000
+ *   After age 65:
+ *     75% Reduction: free
+ *     50% Reduction: $0.75/mo per $1,000  (residual cost continues)
+ *     No Reduction:  $2.25/mo per $1,000
  */
-const BASIC_BIWEEKLY_RATE_PER_1000_ACTIVE = 0.15; // Employee share while active
-const BASIC_BIWEEKLY_RATE_PER_1000_RETIRED = 0.3250; // Full cost in retirement (before 65)
-
-/**
- * Option A (Standard $10,000) biweekly rates by age band.
- * These are per pay period, not per $1,000.
- */
-const OPTION_A_BIWEEKLY_RATES: Record<string, number> = {
-  'under35': 0.43,
-  '35-39': 0.52,
-  '40-44': 0.65,
-  '45-49': 1.00,
-  '50-54': 1.53,
-  '55-59': 2.90,
-  '60-64': 5.55,
-  '65-69': 7.20,
-  '70-74': 10.60,
-  '75-79': 15.60,
-  '80+': 23.40,
+const ANNUITANT_BASIC_MONTHLY_PER_1000_BEFORE_65: Record<string, number> = {
+  '75_PERCENT': 0.3467,
+  '50_PERCENT': 1.0967,
+  'NO_REDUCTION': 2.5967,
+  'ZERO': 0.3467, // Same path as 75% until reduction completes
+  '25_PERCENT': 0.3467, // Legacy alias for 75% reduction
+};
+const ANNUITANT_BASIC_MONTHLY_PER_1000_AFTER_65: Record<string, number> = {
+  '75_PERCENT': 0,
+  '50_PERCENT': 0.75,
+  'NO_REDUCTION': 2.25,
+  'ZERO': 0,
+  '25_PERCENT': 0,
 };
 
-/**
- * Option B biweekly rates per $1,000 of salary (per multiple) by age band.
- */
+/** Active employee Option A (Standard $10,000) — biweekly by age band. */
+const OPTION_A_BIWEEKLY_RATES: Record<string, number> = {
+  'under35': 0.20,
+  '35-39': 0.20,
+  '40-44': 0.30,
+  '45-49': 0.60,
+  '50-54': 1.00,
+  '55-59': 1.80,
+  '60-64': 6.00,
+  '65-69': 6.00, // active employees age 65+ still pay until separation
+  '70-74': 6.00,
+  '75-79': 6.00,
+  '80+': 6.00,
+};
+
+/** Annuitant Option A — MONTHLY by age band (free at 65+). */
+const ANNUITANT_OPTION_A_MONTHLY_RATES: Record<string, number> = {
+  'under35': 0.43,
+  '35-39': 0.43,
+  '40-44': 0.65,
+  '45-49': 1.30,
+  '50-54': 2.17,
+  '55-59': 3.90,
+  '60-64': 13.00,
+  '65-69': 0,
+  '70-74': 0,
+  '75-79': 0,
+  '80+': 0,
+};
+
+/** Active employee Option B — biweekly per $1,000 of coverage by age band. */
 const OPTION_B_BIWEEKLY_RATES_PER_1000: Record<string, number> = {
   'under35': 0.02,
-  '35-39': 0.03,
-  '40-44': 0.04,
-  '45-49': 0.07,
+  '35-39': 0.02,
+  '40-44': 0.03,
+  '45-49': 0.06,
   '50-54': 0.10,
-  '55-59': 0.20,
+  '55-59': 0.18,
   '60-64': 0.40,
-  '65-69': 0.70,
-  '70-74': 1.09,
-  '75-79': 1.76,
-  '80+': 2.64,
+  '65-69': 0.48,
+  '70-74': 0.86,
+  '75-79': 1.80,
+  '80+': 2.88,
 };
 
-/**
- * Option C biweekly rates per $1,000 of benefit (per multiple) by age band.
- * Rate is per multiple of coverage.
- */
-const OPTION_C_BIWEEKLY_RATES: Record<string, number> = {
-  'under35': 0.27,
-  '35-39': 0.32,
-  '40-44': 0.42,
-  '45-49': 0.65,
-  '50-54': 0.95,
-  '55-59': 1.75,
-  '60-64': 3.30,
-  '65-69': 4.35,
-  '70-74': 6.40,
-  '75-79': 9.40,
-  '80+': 14.10,
+/** Annuitant Option B — MONTHLY per $1,000 of coverage by age band. */
+const ANNUITANT_OPTION_B_MONTHLY_RATES_PER_1000: Record<string, number> = {
+  'under35': 0.043,
+  '35-39': 0.043,
+  '40-44': 0.065,
+  '45-49': 0.130,
+  '50-54': 0.217,
+  '55-59': 0.390,
+  '60-64': 0.867,
+  '65-69': 1.040,
+  '70-74': 1.863,
+  '75-79': 3.900,
+  '80+': 6.240,
 };
+
+/** Active employee Option C — biweekly per multiple by age band. */
+const OPTION_C_BIWEEKLY_RATES: Record<string, number> = {
+  'under35': 0.20,
+  '35-39': 0.24,
+  '40-44': 0.37,
+  '45-49': 0.53,
+  '50-54': 0.83,
+  '55-59': 1.33,
+  '60-64': 2.43,
+  '65-69': 2.83,
+  '70-74': 3.83,
+  '75-79': 5.76,
+  '80+': 7.80,
+};
+
+/** Annuitant Option C — MONTHLY per multiple by age band. */
+const ANNUITANT_OPTION_C_MONTHLY_RATES: Record<string, number> = {
+  'under35': 0.43,
+  '35-39': 0.52,
+  '40-44': 0.80,
+  '45-49': 1.15,
+  '50-54': 1.80,
+  '55-59': 2.88,
+  '60-64': 5.27,
+  '65-69': 6.13,
+  '70-74': 8.30,
+  '75-79': 12.48,
+  '80+': 16.90,
+};
+
+const BIWEEKLY_TO_MONTHLY = 26 / 12;
 
 /**
  * Get the age band key for rate lookup.
@@ -137,46 +203,97 @@ function getAgeBand(age: number): string {
 }
 
 /**
- * Calculate biweekly cost for Basic FEGLI.
+ * Active employee Basic biweekly cost (per OPM rate table, $0.16 per $1,000).
  */
-function basicBiweeklyCost(
+function basicActiveBiweeklyCost(coverage: number): number {
+  return (coverage / 1000) * BASIC_BIWEEKLY_RATE_PER_1000_ACTIVE;
+}
+
+/**
+ * Annuitant Basic monthly cost — depends on age (before/after 65) and the
+ * elected reduction tier. Returns the MONTHLY amount; convert to biweekly with
+ * `× 12 / 26` if needed.
+ */
+function basicAnnuitantMonthlyCost(
   coverage: number,
   age: number,
-  isRetired: boolean
+  reduction: FegliReduction
 ): number {
-  const rate = isRetired
-    ? BASIC_BIWEEKLY_RATE_PER_1000_RETIRED
-    : BASIC_BIWEEKLY_RATE_PER_1000_ACTIVE;
+  const rate =
+    age < 65
+      ? ANNUITANT_BASIC_MONTHLY_PER_1000_BEFORE_65[reduction] ?? 0.3467
+      : ANNUITANT_BASIC_MONTHLY_PER_1000_AFTER_65[reduction] ?? 0;
   return (coverage / 1000) * rate;
 }
 
 /**
- * Calculate biweekly cost for Option A.
+ * Backwards-compatible biweekly cost wrapper used in pre-retirement years.
+ * Annuitant biweekly is derived from the published monthly rate.
  */
-function optionABiweeklyCost(age: number): number {
+function basicBiweeklyCost(
+  coverage: number,
+  age: number,
+  isRetired: boolean,
+  reduction: FegliReduction = '75_PERCENT'
+): number {
+  if (!isRetired) {
+    return basicActiveBiweeklyCost(coverage);
+  }
+  const monthly = basicAnnuitantMonthlyCost(coverage, age, reduction);
+  return monthly / BIWEEKLY_TO_MONTHLY;
+}
+
+/**
+ * Option A biweekly cost. Active employees pay biweekly until separation;
+ * annuitants pay the published monthly rate (free at 65+) — converted to a
+ * biweekly equivalent for projection consistency.
+ */
+function optionABiweeklyCost(age: number, isRetired: boolean): number {
   const band = getAgeBand(age);
+  if (isRetired) {
+    const monthly = ANNUITANT_OPTION_A_MONTHLY_RATES[band] ?? 0;
+    return monthly / BIWEEKLY_TO_MONTHLY;
+  }
   return OPTION_A_BIWEEKLY_RATES[band] ?? 0;
 }
 
 /**
- * Calculate biweekly cost for Option B.
+ * Option B biweekly cost. Active rates are biweekly per $1,000 of salary
+ * (rounded up to nearest $1,000) × multiple. Annuitant rates are monthly
+ * per $1,000 of coverage; converted to biweekly equivalent.
  */
 function optionBBiweeklyCost(
   annualSalary: number,
   multiple: number,
-  age: number
+  age: number,
+  isRetired: boolean
 ): number {
   const band = getAgeBand(age);
-  const ratePer1000 = OPTION_B_BIWEEKLY_RATES_PER_1000[band] ?? 0;
   const roundedSalary = Math.ceil(annualSalary / 1000) * 1000;
+  if (isRetired) {
+    const monthlyPer1000 = ANNUITANT_OPTION_B_MONTHLY_RATES_PER_1000[band] ?? 0;
+    const monthly = (roundedSalary / 1000) * monthlyPer1000 * multiple;
+    return monthly / BIWEEKLY_TO_MONTHLY;
+  }
+  const ratePer1000 = OPTION_B_BIWEEKLY_RATES_PER_1000[band] ?? 0;
   return (roundedSalary / 1000) * ratePer1000 * multiple;
 }
 
 /**
- * Calculate biweekly cost for Option C.
+ * Option C biweekly cost. Active employees pay biweekly per multiple;
+ * annuitants pay monthly per multiple (free at 65+ for some tiers, with
+ * residual cost showing in the rate table for ages 65+ tier).
  */
-function optionCBiweeklyCost(multiple: number, age: number): number {
+function optionCBiweeklyCost(
+  multiple: number,
+  age: number,
+  isRetired: boolean
+): number {
   const band = getAgeBand(age);
+  if (isRetired) {
+    const monthly = ANNUITANT_OPTION_C_MONTHLY_RATES[band] ?? 0;
+    return (monthly * multiple) / BIWEEKLY_TO_MONTHLY;
+  }
   const rate = OPTION_C_BIWEEKLY_RATES[band] ?? 0;
   return rate * multiple;
 }
@@ -200,10 +317,12 @@ function postRetirementBasicCoverage(
 ): { coverage: number; biweeklyCost: number } {
   const reductionStartAge = Math.max(65, retirementAge);
 
+  // Pre-reduction (after retirement, before 65 or before reduction begins)
   if (age < reductionStartAge) {
+    const isRetired = age >= retirementAge;
     return {
       coverage: fullCoverage,
-      biweeklyCost: basicBiweeklyCost(fullCoverage, age, age >= retirementAge),
+      biweeklyCost: basicBiweeklyCost(fullCoverage, age, isRetired, reduction),
     };
   }
 
@@ -211,32 +330,29 @@ function postRetirementBasicCoverage(
 
   switch (reduction) {
     case 'NO_REDUCTION':
-      // Full coverage, continues paying full cost
+      // Full coverage continues, retiree keeps paying the No-Reduction tier
       return {
         coverage: fullCoverage,
-        biweeklyCost: basicBiweeklyCost(fullCoverage, age, true),
+        biweeklyCost: basicBiweeklyCost(fullCoverage, age, true, 'NO_REDUCTION'),
       };
 
     case '75_PERCENT': {
-      // Reduces 2% per month until 25% remaining. Free after full reduction.
+      // Reduces 2% per month until 25% remaining. Per OPM rate table, the
+      // 75% Reduction tier is FREE once the retiree is past the month after
+      // their 65th birthday — and the rate table shows $0.3467/mo until 65,
+      // then free. We follow that table: free for retirements ≥65.
       const reductionPercent = Math.min(monthsSinceStart * 0.02, 0.75);
       const coverage = fullCoverage * (1 - reductionPercent);
-      // Free once reduction completes
-      const biweeklyCost =
-        reductionPercent >= 0.75 ? 0 : basicBiweeklyCost(coverage, age, true);
+      const biweeklyCost = basicBiweeklyCost(coverage, age, true, '75_PERCENT');
       return { coverage: Math.round(coverage), biweeklyCost };
     }
 
     case '50_PERCENT': {
-      // Reduces 1% per month until 50% remaining. Reduced cost continues.
+      // Reduces 1% per month until 50% remaining. Per OPM, retiree continues
+      // paying $1.0967/mo per $1,000 until age 65, then $0.75/mo per $1,000.
       const reductionPercent = Math.min(monthsSinceStart * 0.01, 0.50);
       const coverage = fullCoverage * (1 - reductionPercent);
-      // After full reduction, extra premium cost for keeping 50%
-      const extraBiweekly = reductionPercent >= 0.50 ? (coverage / 1000) * 0.60 : 0;
-      const biweeklyCost =
-        reductionPercent >= 0.50
-          ? extraBiweekly
-          : basicBiweeklyCost(coverage, age, true);
+      const biweeklyCost = basicBiweeklyCost(coverage, age, true, '50_PERCENT');
       return { coverage: Math.round(coverage), biweeklyCost };
     }
 
@@ -303,18 +419,18 @@ export function calculateFegli(
     : 0;
   const totalCov = basicCov + optionACov + optionBCov + optionCCov;
 
-  // Current biweekly costs
+  // Current biweekly costs (employee is active today)
   const currentBasicBiweekly = fegli.basicCoverage
     ? basicBiweeklyCost(basicCov, currentAge, false)
     : 0;
   const currentOptionABiweekly = fegli.optionA
-    ? optionABiweeklyCost(currentAge)
+    ? optionABiweeklyCost(currentAge, false)
     : 0;
   const currentOptionBBiweekly = fegli.optionB
-    ? optionBBiweeklyCost(annualSalary, fegli.optionBMultiple, currentAge)
+    ? optionBBiweeklyCost(annualSalary, fegli.optionBMultiple, currentAge, false)
     : 0;
   const currentOptionCBiweekly = fegli.optionC
-    ? optionCBiweeklyCost(fegli.optionCMultiple, currentAge)
+    ? optionCBiweeklyCost(fegli.optionCMultiple, currentAge, false)
     : 0;
 
   // 26 pay periods per year, divide by 2 for monthly (~ 2.167 pay periods/month)
@@ -369,39 +485,31 @@ export function calculateFegli(
       basicInfo = { coverage: 0, biweeklyCost: 0 };
     }
 
-    // Option A: terminates at 80 for post-65 unless keeping coverage
-    const optACov = fegli.optionA && age < 80 ? optionACov : fegli.optionA ? optionACov : 0;
-    const optABiweekly = fegli.optionA ? optionABiweeklyCost(age) : 0;
+    // Option A: $10,000 flat. Annuitants are free at 65+ (per OPM rate table).
+    const optACov = fegli.optionA ? optionACov : 0;
+    const optABiweekly = fegli.optionA ? optionABiweeklyCost(age, isRetired) : 0;
 
-    // Option B: coverage reduces 2% per month after 65 (unless elected otherwise)
-    // Standard reduction: to 0 over time; most retirees lose Option B after 65
+    // Option B: stays at full multiple unless retiree elected the 2%/mo reduction.
+    // Per OPM rate table the published rates continue at every age band, so
+    // coverage holds steady; cost rises with age for those who keep it.
     let optBCov = 0;
     let optBBiweekly = 0;
     if (fegli.optionB) {
-      if (age < 65) {
-        optBCov = optionBCov;
-        optBBiweekly = optionBBiweeklyCost(
-          annualSalary,
-          fegli.optionBMultiple,
-          age
-        );
-      } else {
-        // Option B reduces after 65: standard is full reduction over ~4 years
-        const monthsPast65 = (age - 65) * 12;
-        const reductionFactor = Math.max(1 - monthsPast65 * 0.02, 0);
-        optBCov = Math.round(optionBCov * reductionFactor);
-        optBBiweekly = optBCov > 0
-          ? optionBBiweeklyCost(annualSalary, fegli.optionBMultiple, age) * reductionFactor
-          : 0;
-      }
+      optBCov = optionBCov;
+      optBBiweekly = optionBBiweeklyCost(
+        annualSalary,
+        fegli.optionBMultiple,
+        age,
+        isRetired,
+      );
     }
 
-    // Option C: terminates at 65 (no post-retirement Option C)
+    // Option C: family coverage. Annuitants pay published monthly rates by age.
     let optCCov = 0;
     let optCBiweekly = 0;
-    if (fegli.optionC && age < 65) {
+    if (fegli.optionC) {
       optCCov = optionCCov;
-      optCBiweekly = optionCBiweeklyCost(fegli.optionCMultiple, age);
+      optCBiweekly = optionCBiweeklyCost(fegli.optionCMultiple, age, isRetired);
     }
 
     // Convert biweekly to annual (26 pay periods)

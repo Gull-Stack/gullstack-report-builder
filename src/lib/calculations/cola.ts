@@ -68,6 +68,24 @@ export function getColaRate(
 }
 
 /**
+ * First-year COLA proration. OPM (5 USC § 8462(c)) prorates the first COLA
+ * paid to a retiree by 1/12 for each month they were retired before the
+ * COLA's effective date (December 1). A retiree who retired in November
+ * gets 1/12 of the COLA the following January; an April retiree gets 8/12.
+ *
+ * @param retirementMonth  0-indexed month (Jan = 0, Dec = 11)
+ * @returns proration factor between 0 and 1
+ */
+export function firstYearColaProration(retirementMonth: number): number {
+  // Months retired before Dec 1 = (12 - retirementMonth - 1) when month < 11.
+  // Retirement in Dec → 0 months before next Dec → 0 proration.
+  // Retirement in Nov → 1 month → 1/12 proration.
+  // Retirement in Jan → 11 months → 11/12 proration.
+  const monthsBeforeDec = Math.max(11 - retirementMonth, 0);
+  return monthsBeforeDec / 12;
+}
+
+/**
  * Generate year-by-year COLA projections for the annuity.
  *
  * @param startingAnnualAnnuity - Annual annuity at retirement (after survivor reduction)
@@ -75,6 +93,7 @@ export function getColaRate(
  * @param cpiAssumption - Assumed annual CPI increase
  * @param retirementYear - Year of retirement
  * @param projectionYears - Number of years to project (default 30)
+ * @param retirementMonth - 0-indexed month of retirement (default Jan/0)
  * @returns Array of ColaProjection
  */
 export function calculateColaProjections(
@@ -82,19 +101,31 @@ export function calculateColaProjections(
   retirementSystem: RetirementSystem,
   cpiAssumption: number,
   retirementYear: number,
-  projectionYears: number = 30
+  projectionYears: number = 30,
+  retirementMonth: number = 0,
 ): ColaProjection[] {
   const projections: ColaProjection[] = [];
   let currentAnnuity = startingAnnualAnnuity;
+  const proration = firstYearColaProration(retirementMonth);
 
   for (let i = 0; i < projectionYears; i++) {
     const year = retirementYear + i;
 
     if (i === 0) {
-      // First year: no COLA (retirement year)
+      // Retirement year — annuity starts at unreduced amount; no COLA yet.
       projections.push({
         year,
         colaRate: 0,
+        annuityAfterCola: Math.round(currentAnnuity * 100) / 100,
+      });
+    } else if (i === 1) {
+      // First COLA after retirement is prorated.
+      const baseCola = getColaRate(retirementSystem, cpiAssumption);
+      const cola = baseCola * proration;
+      currentAnnuity = currentAnnuity * (1 + cola);
+      projections.push({
+        year,
+        colaRate: Math.round(cola * 10000) / 10000,
         annuityAfterCola: Math.round(currentAnnuity * 100) / 100,
       });
     } else {

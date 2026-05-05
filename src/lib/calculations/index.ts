@@ -148,12 +148,14 @@ export function calculateReport(input: ReportInput): CalculationResult {
   );
 
   // ---- COLA Projections ----
+  const retirementMonth = parseISO(input.employment.plannedRetirementDate).getMonth();
   const colaProjections = calculateColaProjections(
     annuityAfterSurvivor,
     input.employment.retirementSystem,
     colaAssumption,
     retirementYear,
-    projectionYears
+    projectionYears,
+    retirementMonth,
   );
 
   // ---- TSP ----

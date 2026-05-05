@@ -120,11 +120,31 @@ export function calculateCsrsAnnuity(
 export function calculateCongressionalAnnuity(
   high3: number,
   serviceYears: number,
-  serviceMonths: number
+  serviceMonths: number,
+  hireDate?: string,
+  ageAtRetirement?: number,
 ): { annual: number; multiplier: number } {
   const totalYears = serviceToDecimalYears(serviceYears, serviceMonths);
-  let annual: number;
 
+  // Post-2014 Congressional hires lost the enhanced 1.7% accrual; they follow
+  // standard FERS rules (5 USC § 8415(b) as amended by P.L. 112-96 and 113-67).
+  if (hireDate) {
+    const hireYear = new Date(hireDate).getFullYear();
+    if (hireYear >= 2014) {
+      const standardMult =
+        ageAtRetirement != null && ageAtRetirement >= 62 && totalYears >= 20
+          ? 0.011
+          : 0.01;
+      const annual = standardMult * high3 * totalYears;
+      return {
+        annual: Math.round(annual * 100) / 100,
+        multiplier: standardMult,
+      };
+    }
+  }
+
+  // Pre-2014 enhanced Congressional formula: 1.7% × first 20 yrs + 1.0% × remainder.
+  let annual: number;
   if (totalYears <= 20) {
     annual = 0.017 * high3 * totalYears;
   } else {
