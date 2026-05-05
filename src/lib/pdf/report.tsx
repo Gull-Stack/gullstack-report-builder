@@ -565,7 +565,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Proposed &amp; Delayed Retirement
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -640,7 +640,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Retirement Annuity and Surviving Spouse Benefit
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
           <Text style={{ fontSize: 9, marginBottom: 6 }}>
@@ -677,15 +677,15 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             TSP Disclaimer
           </Text>
           <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
-            <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This calculator is provided for informational purposes only</Text>. It is not intended to provide retirement income advice, be used as an investment advisory tool, as a guarantee of monthly payment amounts, as a guarantee of a final account balance or as a guarantee of the duration of the elected monthly payment amount. The monthly income illustrated is based on a gross distribution without consideration for income tax.
+            <Text style={{ textDecoration: 'underline' }}>This calculator is provided for informational purposes only</Text>. It is not intended to provide retirement income advice, be used as an investment advisory tool, as a guarantee of monthly payment amounts, as a guarantee of a final account balance or as a guarantee of the duration of the elected monthly payment amount. The monthly income illustrated is based on a gross distribution without consideration for income tax.
           </Text>
           <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
-            <Text style={{ textDecoration: 'underline', fontStyle: 'italic' }}>This report illustrates hypothetical balances at retirement</Text> for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS) Thrift Savings Plan (TSP). Estimates are based on assumptions, which may affect the results and may differ from actual experience. Since future rates of return and performance cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report and it is recommended that you consult with your personnel office, the Office of Personnel Management (OPM) or Retirement Information Office 1888-767-6738. {brand} cannot provide retirement analysis and decision information to you. No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis and you may not rely upon such information or advice. The analysis is provided 'AS IS' without warranties or representations of any kind and disclaim all express, implied and statutory warranties of any kind to the user and any third party, (including, but not limited to, the implied warranties of accuracy, timeliness, completeness, merchantability, noninfringement and fitness for a particular purpose).
+            <Text style={{ textDecoration: 'underline' }}>This report illustrates hypothetical balances at retirement</Text> for the Civil Service Retirement System (CSRS) or the Federal Employees Retirement System (FERS) Thrift Savings Plan (TSP). Estimates are based on assumptions, which may affect the results and may differ from actual experience. Since future rates of return and performance cannot be estimated with absolute certainty, you should not base your financial decisions solely on the estimates of this report and it is recommended that you consult with your personnel office, the Office of Personnel Management (OPM) or Retirement Information Office 1888-767-6738. {brand} cannot provide retirement analysis and decision information to you. No oral or written information or advice provided by {brand} and its agents or employees shall create a warranty of any kind regarding this analysis and you may not rely upon such information or advice. The analysis is provided 'AS IS' without warranties or representations of any kind and disclaim all express, implied and statutory warranties of any kind to the user and any third party, (including, but not limited to, the implied warranties of accuracy, timeliness, completeness, merchantability, noninfringement and fitness for a particular purpose).
           </Text>
           <Text style={{ fontSize: 10.5, lineHeight: 1.55, marginBottom: 10, textAlign: 'justify' }}>
             Neither {brand} nor anyone else who has been involved in the creation, production or delivery of this analysis shall be liable for any direct, indirect, consequential, or incidental damages (including, but not limited to, damages for lost profits or lost opportunity, loss of business or personal profits, business or personal interruption, loss of business or personal information, special, or punitive damages whatsoever) arising from the use of (or inability to use) this analysis.
           </Text>
-          <Text style={{ fontSize: 10.5, lineHeight: 1.55, fontStyle: 'italic', textDecoration: 'underline', textAlign: 'justify' }}>
+          <Text style={{ fontSize: 10.5, lineHeight: 1.55, textDecoration: 'underline', textAlign: 'justify' }}>
             All figures shown are hypothetical and based on information provided by you. Any change to your benefit elections, salary or other information provided by you could alter these figures.
           </Text>
         </View>
@@ -699,7 +699,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -723,7 +723,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionTraditional)} from your salary and an additional {fmt.currency(input.tsp.catchUpContribution)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionTraditional + input.tsp.catchUpContribution)}.
           </Text>
-          <Text style={{ fontSize: 11, marginTop: 6, fontStyle: 'italic', color: colors.gray }}>
+          <Text style={{ fontSize: 11, marginTop: 6, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: colors.gray }}>
             In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
           </Text>
 
@@ -747,7 +747,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -789,7 +789,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Thrift Savings Plan
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
           <Text style={{ fontSize: 11, fontWeight: 'bold', textDecoration: 'underline' }}>Existing Roth Savings</Text>
@@ -812,7 +812,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={{ fontSize: 11, lineHeight: 1.55, marginTop: 4 }}>
             You are currently contributing a regular amount of {fmt.currency(input.tsp.annualContributionRoth)} from your salary and an additional {fmt.currency(0)} catch-up contribution for a combined Annual Contribution of {fmt.currency(input.tsp.annualContributionRoth)}.
           </Text>
-          <Text style={{ fontSize: 11, marginTop: 6, fontStyle: 'italic', color: colors.gray }}>
+          <Text style={{ fontSize: 11, marginTop: 6, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: colors.gray }}>
             In January of each year, you anticipate a {fmt.pct(salaryRate)} increase in salary that will raise your annual TSP contribution.
           </Text>
 
@@ -836,7 +836,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4, fontSize: 22 }]}>
             Thrift Savings Plan - ROTH Contributions and Hypothetical Savings
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -863,7 +863,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
               })}
             />
           ) : (
-            <Text style={{ fontSize: 10, marginTop: 30, fontStyle: 'italic' }}>
+            <Text style={{ fontSize: 11, marginTop: 30, fontFamily: 'Cormorant Garamond', fontStyle: 'italic', color: colors.gray }}>
               No Roth TSP balance or contributions on record.
             </Text>
           )}
@@ -878,7 +878,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Group Life Insurance
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -948,7 +948,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             Federal Employees Health Benefit Program
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
 
@@ -982,7 +982,7 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
             FERS Supplement and Estimated Social Security Benefits
           </Text>
-          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontStyle: 'italic' }}>
+          <Text style={{ fontSize: 9.5, textAlign: 'center', color: colors.gray, marginBottom: 14, fontFamily: 'Cormorant Garamond', fontStyle: 'italic' }}>
             All figures are hypothetical and based on the information provided.
           </Text>
           <Text style={{ fontSize: 9, marginBottom: 6, textDecoration: 'underline' }}>Benefits Data</Text>

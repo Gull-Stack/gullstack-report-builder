@@ -239,6 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: 700,
   },
   italic: {
+    fontFamily: FONT_DISPLAY,
     fontStyle: 'italic',
   },
 
