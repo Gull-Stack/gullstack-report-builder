@@ -985,21 +985,38 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           FERS Supplement &amp; Social Security Benefits
         </Text>
         <View style={styles.goldDivider} />
-        <Text style={{ fontSize: 10.5, color: colors.grayDark, marginBottom: 12, lineHeight: 1.5 }}>
+        <Text style={{ fontSize: 10.5, color: colors.grayDark, marginBottom: 10, lineHeight: 1.5 }}>
           Calculations assume a FERS Annuity COLA of <Text style={{ fontWeight: 700, color: colors.navy }}>{fmt.pctWhole(cola)}</Text> and a Social Security COLA of <Text style={{ fontWeight: 700, color: colors.navy }}>{fmt.pctWhole(cola)}</Text>.
         </Text>
 
-          <DataTable
-            columns={[
-              { header: 'Age', width: '14%' },
-              { header: 'FERS Annuity', width: '16%' },
-              { header: 'FERS Supplement', width: '17%' },
-              { header: 'Estimated Social Security', width: '20%' },
-              { header: 'TOTAL', width: '17%' },
-              { header: 'Change', width: '16%' },
-            ]}
-            rows={supplementSsRows}
-          />
+        {/* Compact 24-row table — tightened padding + 8.5pt cells so all
+            ages 67-90 fit on a single Letter page without orphans. */}
+        <View wrap={false}>
+          <View style={{ flexDirection: 'row', backgroundColor: colors.navy, paddingVertical: 6 }}>
+            {['Age', 'FERS Annuity', 'FERS Supplement', 'Estimated Social Security', 'TOTAL', 'Change'].map((h, i) => (
+              <Text key={i} style={{
+                flex: i === 0 ? 0.7 : i === 3 ? 1.6 : 1.2,
+                fontSize: 8.5, color: colors.white, fontWeight: 700,
+                textAlign: i === 0 ? 'center' : 'right', paddingHorizontal: 4,
+              }}>{h}</Text>
+            ))}
+          </View>
+          {supplementSsRows.map((row, ri) => (
+            <View key={ri} style={{
+              flexDirection: 'row', paddingVertical: 3, paddingHorizontal: 4,
+              borderBottomWidth: 0.5, borderBottomColor: '#eef0f3',
+              backgroundColor: ri % 2 === 1 ? colors.offWhite : colors.white,
+            }}>
+              {row.map((cell, ci) => (
+                <Text key={ci} style={{
+                  flex: ci === 0 ? 0.7 : ci === 3 ? 1.6 : 1.2,
+                  fontSize: 8.5, color: colors.grayDark,
+                  textAlign: ci === 0 ? 'center' : 'right', paddingHorizontal: 4,
+                }}>{String(cell)}</Text>
+              ))}
+            </View>
+          ))}
+        </View>
       </ReportPage>
     </Document>
   );
