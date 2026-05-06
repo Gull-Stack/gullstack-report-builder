@@ -980,15 +980,14 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
           PAGE 13 — FERS SUPPLEMENT + SS
           ============================================================ */}
       <ReportPage brand={brand} phone={phone}>
-        <View style={{ paddingHorizontal: 50 }}>
-          <Text style={[styles.sectionTitle, { textAlign: 'center', marginTop: 4 }]}>
-            FERS Supplement and Estimated Social Security Benefits
-          </Text>
-          <View style={[styles.goldDivider, { alignSelf: 'center' }]} />
-          <Text style={{ fontSize: 9, marginBottom: 6, textDecoration: 'underline' }}>Benefits Data</Text>
-          <Text style={{ fontSize: 9, marginBottom: 12 }}>
-            Calculations based on a FERS Annuity COLA of {fmt.pctWhole(cola)} and a Social Security COLA of {fmt.pctWhole(cola)}.
-          </Text>
+        <Text style={styles.sectionEyebrow}>RETIREMENT INCOME PROJECTION</Text>
+        <Text style={[styles.sectionTitle, { fontSize: 22 }]}>
+          FERS Supplement &amp; Social Security Benefits
+        </Text>
+        <View style={styles.goldDivider} />
+        <Text style={{ fontSize: 10.5, color: colors.grayDark, marginBottom: 12, lineHeight: 1.5 }}>
+          Calculations assume a FERS Annuity COLA of <Text style={{ fontWeight: 700, color: colors.navy }}>{fmt.pctWhole(cola)}</Text> and a Social Security COLA of <Text style={{ fontWeight: 700, color: colors.navy }}>{fmt.pctWhole(cola)}</Text>.
+        </Text>
 
           <DataTable
             columns={[
@@ -1001,7 +1000,6 @@ const FederalRetirementReport: React.FC<FederalReportProps> = ({
             ]}
             rows={supplementSsRows}
           />
-        </View>
       </ReportPage>
     </Document>
   );
